@@ -109,7 +109,7 @@
           <select id="ocrLangSelect" class="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
             <option value="eng">English (eng)</option>
             <option value="tam">Tamil (tam)</option>
-            <option value="hin">Hindi (hin)</option>
+            <option value="mar">Marathi (mar)</option>
             <option value="spa">Spanish (spa)</option>
             <option value="fra">French (fra)</option>
             <option value="deu">German (deu)</option>
