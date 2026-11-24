@@ -1,0 +1,3656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- External Libraries: Tailwind CSS, Three.js r128, Chart.js 3.9.1, jsPDF & AutoTable -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Fixed universal selector */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0b1120 0%, #172554 50%, #1e293b 100%);
+            min-height: 100vh;
+            color: #1f2937;
+            overflow-x: hidden;
+        }
+
+        .container-app {
+            max-width: 1920px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .header-banner {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+            padding: 28px 24px;
+            background: rgba(15, 23, 42, 0.72);
+            border-radius: 18px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+        }
+
+        .header-banner h1 {
+            font-size: clamp(1.6rem, 3.2vw, 2.8rem);
+            font-weight: 800;
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
+            background: linear-gradient(90deg, #f8fafc 0%, #60a5fa 55%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-banner p {
+            font-size: clamp(0.88rem, 1.2vw, 1.05rem);
+            color: #cbd5e1;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 370px minmax(420px, 1fr) 440px;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: 0 18px 38px rgba(0, 0, 0, 0.24);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            max-height: 920px;
+            overflow-y: auto;
+        }
+
+        .panel::-webkit-scrollbar {
+            width: 7px;
+        }
+        .panel::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        .panel::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        .panel::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .viewer-panel {
+            position: relative;
+            min-height: 820px;
+            height: 920px;
+            padding: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            color: #1e3a8a;
+            margin-bottom: 16px;
+            border-bottom: 3px solid #e2e8f0;
+            padding-bottom: 10px;
+            font-weight: 700;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 72px;
+            height: 3px;
+            background: linear-gradient(90deg, #2563eb, #0ea5e9);
+            border-radius: 2px;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 18px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 9px 6px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            border-radius: 9px;
+            transition: all 0.2s ease;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: #475569;
+        }
+
+        .tab:hover {
+            color: #1e3a8a;
+            background: rgba(255, 255, 255, 0.55);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #334155;
+            font-size: 0.8rem;
+        }
+
+        .form-group input[type="number"],
+        .form-group select {
+            width: 100%;
+            padding: 9px 11px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 9px;
+            font-size: 0.86rem;
+            transition: all 0.2s ease;
+            background: #ffffff;
+            color: #0f172a;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+        }
+
+        .form-group input.input-invalid {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            padding: 9px 14px;
+            border-radius: 9px;
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.25);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(30, 64, 175, 0.35);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.active-view {
+            background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.6);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+            font-size: 0.95rem;
+            padding: 12px 20px;
+            width: 100%;
+            border-radius: 11px;
+            box-shadow: 0 6px 18px rgba(220, 38, 38, 0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            font-size: 0.88rem;
+            padding: 10px 16px;
+            border-radius: 10px;
+            box-shadow: 0 4px 14px rgba(5, 150, 105, 0.25);
+        }
+
+        .btn-slate {
+            background: linear-gradient(135deg, #334155 0%, #475569 100%);
+            box-shadow: 0 4px 12px rgba(51, 65, 85, 0.25);
+        }
+
+        .btn-pdf {
+            background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
+            box-shadow: 0 5px 15px rgba(79, 70, 229, 0.32);
+        }
+
+        .btn-pdf:disabled {
+            opacity: 0.65;
+            cursor: wait;
+            transform: none;
+        }
+
+        .action-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .report-details {
+            margin-top: 14px;
+            margin-bottom: 12px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 11px;
+            padding: 9px 12px;
+        }
+
+        .report-details summary {
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #1e3a8a;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            user-select: none;
+        }
+
+        .report-details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .report-details summary::after {
+            content: '▾';
+            font-size: 0.9rem;
+            color: #64748b;
+            transition: transform 0.2s ease;
+        }
+
+        .report-details[open] summary::after {
+            transform: rotate(180deg);
+        }
+
+        .report-details-body {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .report-details-body .form-group {
+            margin-bottom: 0;
+        }
+
+        .report-details-body input[type="text"] {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            background: #ffffff;
+            color: #0f172a;
+        }
+
+        .report-details-body input[type="text"]:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+        }
+
+        #threejs-container, #twod-container {
+            width: 100%;
+            flex: 1;
+            border-radius: 14px;
+            overflow: hidden;
+            position: relative;
+            min-height: 700px;
+            border: 1.5px solid rgba(148, 163, 184, 0.25);
+        }
+
+        #threejs-container {
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            touch-action: none;
+        }
+
+        #twod-container {
+            background: #f8fafc;
+            display: none;
+        }
+
+        #motor2d-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: crosshair;
+        }
+
+        .viewer-controls {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .viewer-controls .btn {
+            background: rgba(15, 23, 42, 0.82);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            backdrop-filter: blur(8px);
+            padding: 8px 11px;
+            font-size: 0.78rem;
+        }
+
+        .viewer-controls .btn:hover {
+            background: rgba(37, 99, 235, 0.9);
+        }
+
+        .view-controls {
+            position: absolute;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 25;
+            display: flex;
+            gap: 8px;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 7px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            backdrop-filter: blur(10px);
+        }
+
+        .status-indicator {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(15, 23, 42, 0.86);
+            color: #e2e8f0;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.76rem;
+            line-height: 1.5;
+            z-index: 25;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            backdrop-filter: blur(8px);
+        }
+
+        .phase-legend-3d {
+            position: absolute;
+            bottom: 24px;
+            left: 24px;
+            background: rgba(15, 23, 42, 0.86);
+            color: #e2e8f0;
+            padding: 9px 13px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            z-index: 25;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .legend-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+
+        .result-card {
+            background: #ffffff;
+            border-radius: 13px;
+            padding: 15px;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+            border: 1px solid #e2e8f0;
+            border-left: 5px solid #2563eb;
+        }
+
+        .result-card h3 {
+            font-size: 0.96rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .result-item {
+            background: #f8fafc;
+            padding: 10px 8px;
+            border-radius: 9px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            transition: transform 0.15s ease;
+        }
+
+        .result-item:hover {
+            transform: translateY(-1px);
+            border-color: #93c5fd;
+        }
+
+        .result-label {
+            font-size: 0.74rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .result-value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #1e40af;
+            display: block;
+            margin-top: 3px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+
+        .chart-container {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+            height: 255px;
+            position: relative;
+        }
+
+        .span-selection {
+            margin: 10px 0 14px;
+            padding: 12px;
+            background: #f1f5f9;
+            border-radius: 10px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .span-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .span-detail {
+            text-align: center;
+            padding: 8px;
+            background: white;
+            border-radius: 7px;
+            font-size: 0.78rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 9px 6px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.76rem;
+        }
+
+        .comparison-table th {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        .comparison-table tbody tr {
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .comparison-table tbody tr:hover {
+            background: rgba(59, 130, 246, 0.08);
+        }
+
+        .comparison-table tbody tr.span-active {
+            background: rgba(37, 99, 235, 0.14);
+            font-weight: 700;
+            color: #1e3a8a;
+        }
+
+        .comparison-table tbody tr.span-optimal {
+            border-left: 4px solid #10b981;
+        }
+
+        .alert {
+            padding: 10px 12px;
+            margin: 8px 0;
+            border-radius: 9px;
+            border-left: 4px solid;
+            font-size: 0.8rem;
+            line-height: 1.45;
+        }
+
+        .alert-info {
+            background: #eff6ff;
+            border-color: #3b82f6;
+            color: #1e40af;
+        }
+
+        .alert-success {
+            background: #ecfdf5;
+            border-color: #10b981;
+            color: #065f46;
+        }
+
+        .alert-warning {
+            background: #fffbeb;
+            border-color: #f59e0b;
+            color: #92400e;
+        }
+
+        .alert-danger {
+            background: #fef2f2;
+            border-color: #ef4444;
+            color: #991b1b;
+        }
+
+        .industrial-badge {
+            background: linear-gradient(135deg, #059669, #10b981);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        .badge-warn {
+            background: linear-gradient(135deg, #d97706, #f59e0b);
+        }
+
+        .badge-danger {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+        }
+
+        .badge-blue {
+            background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Toast notification (replaces alert()) */
+        #toast-container {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        .toast-msg {
+            background: rgba(15, 23, 42, 0.94);
+            color: #f8fafc;
+            padding: 11px 20px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            animation: fadeInToast 0.25s ease;
+        }
+
+        @keyframes fadeInToast {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 1380px) {
+            .main-layout {
+                grid-template-columns: 350px 1fr;
+            }
+            #analysis-panel {
+                grid-column: 1 / -1;
+                max-height: none;
+            }
+            .charts-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 920px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            .panel {
+                max-height: none;
+            }
+            .viewer-panel {
+                height: 620px;
+                min-height: 580px;
+            }
+            #threejs-container, #twod-container {
+                min-height: 540px;
+            }
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Fallback Print Stylesheet (if jsPDF CDN is unavailable) */
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #0f172a !important;
+            }
+            .header-banner {
+                background: #0f172a !important;
+                color: #ffffff !important;
+                box-shadow: none !important;
+                padding: 16px !important;
+                margin-bottom: 12px !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .header-banner h1 {
+                -webkit-text-fill-color: #ffffff !important;
+                font-size: 1.5rem !important;
+            }
+            .main-layout {
+                display: block !important;
+            }
+            .panel {
+                box-shadow: none !important;
+                border: 1px solid #cbd5e1 !important;
+                max-height: none !important;
+                overflow: visible !important;
+                margin-bottom: 16px !important;
+                page-break-inside: avoid;
+            }
+            #control-panel,
+            .tabs,
+            .view-controls,
+            .viewer-controls,
+            .status-indicator,
+            #toast-container {
+                display: none !important;
+            }
+            .tab-content.hidden {
+                display: block !important;
+            }
+            .viewer-panel {
+                height: 460px !important;
+                min-height: 460px !important;
+            }
+            .charts-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            .chart-container {
+                page-break-inside: avoid;
+                height: 220px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="toast-container"></div>
+
+    <div class="container-app">
+        <header class="header-banner">
+            <h1>⚡ Industrial Motor Winding Design Calculator</h1>
+            <p>IEC 60034 &amp; NEMA MG-1 Compliant &mdash; Physics-Driven Loss Modeling, Harmonic MMF Analysis &amp; 3D/2D Pole-Phase Visualization</p>
+        </header>
+
+        <main class="main-layout">
+            <!-- LEFT: Control Panel -->
+            <section class="panel" id="control-panel">
+                <h2 class="section-title">
+                    <span>⚙️ Motor Design Parameters</span>
+                </h2>
+
+                <!-- Inline Validation Alerts Container -->
+                <div id="validation-alerts"></div>
+
+                <div class="tabs">
+                    <button type="button" class="tab active" onclick="switchControlTab('basic', this)">Basic</button>
+                    <button type="button" class="tab" onclick="switchControlTab('advanced', this)">Advanced</button>
+                    <button type="button" class="tab" onclick="switchControlTab('losses', this)">Losses</button>
+                    <button type="button" class="tab" onclick="switchControlTab('standards', this)">Standards</button>
+                </div>
+
+                <!-- Basic Parameters -->
+                <div id="basic-tab" class="tab-content">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="slots">Stator Slots (S):</label>
+                            <input type="number" id="slots" min="6" max="144" value="36" step="3" onchange="calculateMotorDesign()">
+                        </div>
+                        <div class="form-group">
+                            <label for="poles">Number of Poles (P):</label>
+                            <input type="number" id="poles" min="2" max="16" value="4" step="2" onchange="calculateMotorDesign()">
+                        </div>
+                        <div class="form-group">
+                            <label for="phases">Phases (m):</label>
+                            <select id="phases" onchange="calculateMotorDesign()">
+                                <option value="3" selected>3-Phase</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="power">Shaft Power P<sub>out</sub> (kW):</label>
+                            <input type="number" id="power" min="0.37" max="500" value="7.5" step="0.25" onchange="calculateMotorDesign()">
+                        </div>
+                        <div class="form-group">
+                            <label for="voltage">Line Voltage V<sub>L</sub> (V):</label>
+                            <select id="voltage" onchange="calculateMotorDesign()">
+                                <option value="230">230V (IEC Low)</option>
+                                <option value="400" selected>400V (IEC Standard)</option>
+                                <option value="460">460V (NEMA Standard)</option>
+                                <option value="690">690V (IEC High)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="frequency">Frequency (Hz):</label>
+                            <select id="frequency" onchange="calculateMotorDesign()">
+                                <option value="50" selected>50 Hz (IEC)</option>
+                                <option value="60">60 Hz (NEMA)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Parameters -->
+                <div id="advanced-tab" class="tab-content hidden">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="wireDiameter">Wire Diameter (mm):</label>
+                            <input type="number" id="wireDiameter" min="0.3" max="6.0" value="1.8" step="0.05" onchange="calculateMotorDesign()">
+                        </div>
+                        <div class="form-group">
+                            <label for="turnsPerCoil">Turns per Coil:</label>
+                            <input type="number" id="turnsPerCoil" min="4" max="300" value="42" step="1" onchange="calculateMotorDesign()">
+                        </div>
+                        <div class="form-group">
+                            <label for="parallelPaths">Parallel Paths (a):</label>
+                            <select id="parallelPaths" onchange="calculateMotorDesign()">
+                                <option value="1">1 (Series)</option>
+                                <option value="2" selected>2 (2-Parallel)</option>
+                                <option value="4">4 (4-Parallel)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="powerFactor">Rated Power Factor:</label>
+                            <input type="number" id="powerFactor" min="0.55" max="0.96" value="0.87" step="0.01" onchange="calculateMotorDesign()">
+                        </div>
+                        <div class="form-group">
+                            <label for="windingType">Winding Type:</label>
+                            <select id="windingType" onchange="calculateMotorDesign()">
+                                <option value="double" selected>Double Layer</option>
+                                <option value="single">Single Layer</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="slotFillFactor">Slot Fill Factor:</label>
+                            <input type="number" id="slotFillFactor" min="0.30" max="0.85" value="0.72" step="0.02" onchange="calculateMotorDesign()">
+                        </div>
+                        <div class="form-group">
+                            <label for="connectionType">Connection Type:</label>
+                            <select id="connectionType" onchange="calculateMotorDesign()">
+                                <option value="star" selected>Star (Y)</option>
+                                <option value="delta">Delta (Δ)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Industrial Loss Input Tab -->
+                <div id="losses-tab" class="tab-content hidden">
+                    <div class="alert alert-info">
+                        <strong>IEC 60034-2-1 Loss Segregation</strong><br>
+                        Toggle manual mode to override auto-computed losses with dynamometer test data. Blank fields fall back to auto-calculated values.
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                            <input type="checkbox" id="useManualLosses" onchange="toggleManualLosses()" style="width:16px; height:16px;">
+                            <span>Use Measured Loss Values (Manual Mode)</span>
+                        </label>
+                    </div>
+
+                    <div id="manualLossInputs" class="hidden">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="manualStatorCopperLoss">Stator Copper (W):</label>
+                                <input type="number" id="manualStatorCopperLoss" min="0" step="1" placeholder="Auto" onchange="calculateMotorDesign()">
+                            </div>
+                            <div class="form-group">
+                                <label for="manualRotorCopperLoss">Rotor Copper (W):</label>
+                                <input type="number" id="manualRotorCopperLoss" min="0" step="1" placeholder="Auto" onchange="calculateMotorDesign()">
+                            </div>
+                            <div class="form-group">
+                                <label for="manualIronLoss">Core / Iron (W):</label>
+                                <input type="number" id="manualIronLoss" min="0" step="1" placeholder="Auto" onchange="calculateMotorDesign()">
+                            </div>
+                            <div class="form-group">
+                                <label for="manualMechanicalLoss">Mechanical (W):</label>
+                                <input type="number" id="manualMechanicalLoss" min="0" step="1" placeholder="Auto" onchange="calculateMotorDesign()">
+                            </div>
+                            <div class="form-group">
+                                <label for="manualStrayLoss">Stray Load (W):</label>
+                                <input type="number" id="manualStrayLoss" min="0" step="1" placeholder="Auto" onchange="calculateMotorDesign()">
+                            </div>
+                        </div>
+                        <div class="alert alert-warning">
+                            <strong>Note:</strong> Efficiency is recalculated directly as &eta; = P<sub>out</sub> / (P<sub>out</sub> + &Sigma;P<sub>loss</sub>).
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="testTemperature">Test Temp (°C):</label>
+                            <input type="number" id="testTemperature" min="10" max="50" value="25" step="1" onchange="calculateMotorDesign()">
+                        </div>
+                        <div class="form-group">
+                            <label for="ambientTemperature">Ambient Temp (°C):</label>
+                            <input type="number" id="ambientTemperature" min="-10" max="60" value="40" step="1" onchange="calculateMotorDesign()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Standards Parameters -->
+                <div id="standards-tab" class="tab-content hidden">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="ieClass">Target IE Class:</label>
+                            <select id="ieClass" onchange="calculateMotorDesign()">
+                                <option value="IE2">IE2 - High Efficiency</option>
+                                <option value="IE3" selected>IE3 - Premium</option>
+                                <option value="IE4">IE4 - Super Premium</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="standard">Design Standard:</label>
+                            <select id="standard" onchange="calculateMotorDesign()">
+                                <option value="IEC" selected>IEC 60034</option>
+                                <option value="NEMA">NEMA MG-1</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="frameSize">Frame Size:</label>
+                            <select id="frameSize" onchange="calculateMotorDesign()">
+                                <option value="auto" selected>Auto Calculate</option>
+                                <option value="90">90 (IEC)</option>
+                                <option value="112">112 (IEC)</option>
+                                <option value="132">132 (IEC)</option>
+                                <option value="160">160 (IEC)</option>
+                                <option value="180">180 (IEC)</option>
+                                <option value="200">200 (IEC)</option>
+                                <option value="225">225 (IEC)</option>
+                                <option value="280">280 (IEC)</option>
+                                <option value="NEMA143T">143T (NEMA)</option>
+                                <option value="NEMA182T">182T (NEMA)</option>
+                                <option value="NEMA213T">213T (NEMA)</option>
+                                <option value="NEMA254T">254T (NEMA)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="insulationClass">Insulation Class:</label>
+                            <select id="insulationClass" onchange="calculateMotorDesign()">
+                                <option value="B">Class B (130°C)</option>
+                                <option value="F" selected>Class F (155°C)</option>
+                                <option value="H">Class H (180°C)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label for="enclosureType">Enclosure / Cooling Type:</label>
+                            <select id="enclosureType" onchange="calculateMotorDesign()">
+                                <option value="IP55" selected>IP55 - IC411 (TEFC Standard)</option>
+                                <option value="IP56">IP56 - IC411 (Heavy Duty Sealed)</option>
+                                <option value="TEFC">TEFC (NEMA Enclosed Fan-Cooled)</option>
+                                <option value="ODP">ODP (Open Drip-Proof)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-primary" onclick="calculateMotorDesign()">
+                    🔬 Calculate &amp; Analyze Motor Design
+                </button>
+
+                <!-- Optional Report Metadata (collapsible, with sensible defaults) -->
+                <details class="report-details" id="report-details-section">
+                    <summary>📝 Report Details (Optional)</summary>
+                    <div class="report-details-body">
+                        <div class="form-group">
+                            <label for="reportMotorTag">Project / Motor Tag:</label>
+                            <input type="text" id="reportMotorTag" value="MTR-IND-400V-01" placeholder="e.g., PUMP-MTR-04">
+                        </div>
+                        <div class="form-group">
+                            <label for="reportEngineer">Engineer / Prepared By:</label>
+                            <input type="text" id="reportEngineer" value="Lead Electrical Engineer" placeholder="Engineer Name">
+                        </div>
+                        <div class="form-group">
+                            <label for="reportDocNo">Document No.:</label>
+                            <input type="text" id="reportDocNo" value="DOC-MTR-2026-001" placeholder="e.g., ENG-DS-001">
+                        </div>
+                    </div>
+                </details>
+
+                <div class="action-row">
+                    <button type="button" class="btn btn-pdf" id="btn-export-pdf" onclick="exportPDFReport()">📄 Export PDF Report</button>
+                    <button type="button" class="btn btn-slate" onclick="exportResults()">📊 Export JSON</button>
+                </div>
+                <div style="margin-top: 8px;">
+                    <button type="button" class="btn btn-secondary" style="width:100%;" onclick="resetCalculator()">🔄 Reset Parameters</button>
+                </div>
+            </section>
+
+            <!-- CENTER: 3D / 2D Viewer Panel -->
+            <section class="panel viewer-panel">
+                <div class="view-controls">
+                    <button type="button" class="btn active-view" id="btn-3d" onclick="switch3DView()">🎯 3D View</button>
+                    <button type="button" class="btn" id="btn-2d" onclick="switch2DView()">📊 2D Winding</button>
+                </div>
+
+                <div class="status-indicator" id="statusIndicator">
+                    Status: <strong id="calculationStatus">Initializing...</strong><br>
+                    Active Span: <strong id="activeSpanLabel">1-8</strong> | 3D Objects: <strong id="objectCount">0</strong>
+                </div>
+
+                <!-- 3D Phase Legend -->
+                <div class="phase-legend-3d" id="phaseLegend3D">
+                    <span><span class="legend-dot" style="background:#ef4444;"></span>Phase A</span>
+                    <span><span class="legend-dot" style="background:#10b981;"></span>Phase B</span>
+                    <span><span class="legend-dot" style="background:#3b82f6;"></span>Phase C</span>
+                </div>
+
+                <!-- 3D Container -->
+                <div id="threejs-container">
+                    <div class="viewer-controls">
+                        <button type="button" class="btn" onclick="resetCamera()">🎯 Reset View</button>
+                        <button type="button" class="btn" onclick="toggleWireframe()">📐 Wireframe</button>
+                        <button type="button" class="btn" onclick="toggleSlotFill()">🔧 Slot Fill</button>
+                        <button type="button" class="btn" onclick="captureScreenshot()">📸 Save PNG</button>
+                    </div>
+                </div>
+
+                <!-- 2D Container -->
+                <div id="twod-container">
+                    <canvas id="motor2d-canvas"></canvas>
+                    <div class="viewer-controls">
+                        <button type="button" class="btn" onclick="reset2DView()">🎯 Redraw</button>
+                        <button type="button" class="btn" id="btn-2d-grid" onclick="toggle2DGrid()">📏 Grid: ON</button>
+                        <button type="button" class="btn" onclick="toggleSlotFill()">🔧 Slot Fill</button>
+                        <button type="button" class="btn" onclick="capture2DScreenshot()">📸 Save PNG</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT: Analysis Panel -->
+            <section class="panel" id="analysis-panel">
+                <h2 class="section-title">
+                    <span>📊 Engineering Analysis</span>
+                </h2>
+
+                <div class="tabs">
+                    <button type="button" class="tab active" onclick="switchAnalysisTab('results', this)">Results</button>
+                    <button type="button" class="tab" onclick="switchAnalysisTab('charts', this)">Charts</button>
+                    <button type="button" class="tab" onclick="switchAnalysisTab('spans', this)">Spans</button>
+                    <button type="button" class="tab" onclick="switchAnalysisTab('optimization', this)">Optimize</button>
+                </div>
+
+                <!-- Results Tab -->
+                <div id="results-tab" class="tab-content">
+                    <div id="motor-results"></div>
+                </div>
+
+                <!-- Charts Tab -->
+                <div id="charts-tab" class="tab-content hidden">
+                    <div class="charts-grid">
+                        <div class="chart-container">
+                            <canvas id="efficiencyChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="torqueSpeedChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="lossChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="currentChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="harmonicChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="temperatureChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Spans Tab -->
+                <div id="spans-tab" class="tab-content hidden">
+                    <div id="span-comparison"></div>
+                </div>
+
+                <!-- Optimization Tab -->
+                <div id="optimization-tab" class="tab-content hidden">
+                    <div id="optimization-results"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        /* =========================================================================
+           GLOBAL STATE & CONFIGURATION
+        ========================================================================= */
+        let scene, camera, renderer;
+        let motorGroup, windingGroup, statorGroup, rotorGroup;
+        let canvas2D, ctx2D;
+
+        let currentMode = '3d';
+        let currentResults = null;
+        let showSlotFill = true;
+        let show2DGrid = true;
+        let wireframeEnabled = false;
+        let selectedSpanValue = null; // null = auto-select optimal span
+
+        // Orbit controller state (accessible by resetCamera())
+        const orbitState = {
+            targetRotationX: 0.42,
+            targetRotationY: 0.65,
+            rotationX: 0.42,
+            rotationY: 0.65,
+            targetDistance: 175,
+            distance: 175
+        };
+
+        // Chart.js instances
+        const charts = {
+            efficiency: null,
+            torqueSpeed: null,
+            loss: null,
+            current: null,
+            harmonic: null,
+            temperature: null
+        };
+
+        // Standard 3-phase colors (A = Red, B = Emerald, C = Blue)
+        const PHASE_COLORS_HEX = ['#ef4444', '#10b981', '#3b82f6'];
+        const PHASE_COLORS_INT = [0xef4444, 0x10b981, 0x3b82f6];
+        const PHASE_NAMES = ['A', 'B', 'C'];
+
+        /* =========================================================================
+           TOAST NOTIFICATION SYSTEM (Replaces alert())
+        ========================================================================= */
+        function showToast(message, duration = 3000) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast-msg';
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        /* =========================================================================
+           POLE-PHASE BELT SLOT ASSIGNMENT (True 3-Phase Spatial Sequence)
+           Sequence per pole pair: A+, C-, B+, A-, C+, B-
+        ========================================================================= */
+        function getSlotPhaseBelt(slotIndex, totalSlots, poles) {
+            const totalBelts = 3 * poles;
+            const beltIndex = Math.floor((slotIndex * totalBelts) / totalSlots) % 6;
+            const beltMap = [
+                { phase: 0, sign: +1, label: 'A+' },
+                { phase: 2, sign: -1, label: 'C-' },
+                { phase: 1, sign: +1, label: 'B+' },
+                { phase: 0, sign: -1, label: 'A-' },
+                { phase: 2, sign: +1, label: 'C+' },
+                { phase: 1, sign: -1, label: 'B-' }
+            ];
+            return beltMap[beltIndex];
+        }
+
+        /* =========================================================================
+           INPUT VALIDATION & SANITIZATION
+        ========================================================================= */
+        function readAndValidateInputs() {
+            const alerts = [];
+            const clamp = (val, min, max, fallback) => {
+                const num = parseFloat(val);
+                if (!Number.isFinite(num)) return fallback;
+                return Math.min(max, Math.max(min, num));
+            };
+
+            let slots = Math.round(clamp(document.getElementById('slots').value, 6, 144, 36));
+            let poles = Math.round(clamp(document.getElementById('poles').value, 2, 16, 4));
+            if (poles % 2 !== 0) {
+                poles = Math.max(2, poles - 1);
+                document.getElementById('poles').value = poles;
+                alerts.push({ type: 'warning', text: `Poles adjusted to even number (${poles}).` });
+            }
+
+            const phases = 3;
+            const slotsEl = document.getElementById('slots');
+            slotsEl.classList.remove('input-invalid');
+
+            if (slots % phases !== 0) {
+                slotsEl.classList.add('input-invalid');
+                alerts.push({
+                    type: 'danger',
+                    text: `Stator slots (${slots}) is not divisible by 3 phases. Balanced 3-phase winding requires S divisible by 3.`
+                });
+            }
+
+            const slotsPerPole = slots / poles;
+            const q = slots / (poles * phases);
+
+            if (slotsPerPole < 3) {
+                slotsEl.classList.add('input-invalid');
+                alerts.push({
+                    type: 'danger',
+                    text: `Slots per pole (${slotsPerPole.toFixed(2)}) is below 3. Increase stator slots or reduce poles.`
+                });
+            } else if (!Number.isInteger(q)) {
+                alerts.push({
+                    type: 'warning',
+                    text: `Fractional-slot winding detected (q = ${q.toFixed(3)} slots/pole/phase). Expect elevated sub-harmonics and unbalanced magnetic pull unless carefully designed.`
+                });
+            }
+
+            const power = clamp(document.getElementById('power').value, 0.37, 500, 7.5);
+            const voltage = clamp(document.getElementById('voltage').value, 110, 11000, 400);
+            const frequency = clamp(document.getElementById('frequency').value, 25, 400, 50);
+            const wireDiameter = clamp(document.getElementById('wireDiameter').value, 0.3, 6.0, 1.8);
+            const turnsPerCoil = Math.round(clamp(document.getElementById('turnsPerCoil').value, 4, 300, 42));
+            const parallelPaths = Math.round(clamp(document.getElementById('parallelPaths').value, 1, 8, 2));
+            const powerFactor = clamp(document.getElementById('powerFactor').value, 0.55, 0.96, 0.87);
+            const slotFillFactor = clamp(document.getElementById('slotFillFactor').value, 0.30, 0.90, 0.72);
+            const testTemperature = clamp(document.getElementById('testTemperature').value, 10, 50, 25);
+            const ambientTemperature = clamp(document.getElementById('ambientTemperature').value, -10, 60, 40);
+
+            if (slotFillFactor > 0.80) {
+                alerts.push({
+                    type: 'warning',
+                    text: `Slot fill factor (${(slotFillFactor * 100).toFixed(0)}%) exceeds 80%. Random-wound industrial stators typically target 65%–78% for manufacturability.`
+                });
+            }
+
+            if (parallelPaths > poles) {
+                alerts.push({
+                    type: 'warning',
+                    text: `Parallel paths (${parallelPaths}) exceeds pole count (${poles}). Standard lap windings allow a ≤ P.`
+                });
+            }
+
+            renderValidationAlerts(alerts);
+
+            return {
+                slots,
+                poles,
+                phases,
+                power,
+                voltage,
+                frequency,
+                wireDiameter,
+                turnsPerCoil,
+                parallelPaths,
+                powerFactor,
+                windingType: document.getElementById('windingType').value,
+                slotFillFactor,
+                connectionType: document.getElementById('connectionType').value,
+                ieClass: document.getElementById('ieClass').value,
+                standard: document.getElementById('standard').value,
+                frameSize: document.getElementById('frameSize').value,
+                insulationClass: document.getElementById('insulationClass').value,
+                enclosureType: document.getElementById('enclosureType').value,
+                testTemperature,
+                ambientTemperature,
+                useManualLosses: document.getElementById('useManualLosses').checked
+            };
+        }
+
+        function renderValidationAlerts(alerts) {
+            const box = document.getElementById('validation-alerts');
+            if (!alerts.length) {
+                box.innerHTML = '';
+                return;
+            }
+            box.innerHTML = alerts
+                .map(a => `<div class="alert alert-${a.type}">${a.text}</div>`)
+                .join('');
+        }
+
+        /* =========================================================================
+           INDUSTRIAL MOTOR CALCULATOR ENGINE (IEC 60034 & NEMA MG-1)
+        ========================================================================= */
+        class IndustrialMotorCalculator {
+            constructor(params, forcedSpan = null) {
+                this.params = params;
+                this.forcedSpan = forcedSpan;
+            }
+
+            // Harmonic distribution factor k_d(nu)
+            calculateHarmonicDistributionFactor(nu = 1) {
+                const { slots, poles, phases } = this.params;
+                const q = Math.max(1, slots / (poles * phases));
+                const beta = (Math.PI * poles) / slots;
+                const denom = q * Math.sin((nu * beta) / 2);
+                if (Math.abs(denom) < 1e-9) {
+                    return Math.cos((nu * q * beta) / 2) >= 0 ? 1 : -1;
+                }
+                return Math.sin((nu * q * beta) / 2) / denom;
+            }
+
+            // Harmonic pitch factor k_p(nu)
+            calculateHarmonicPitchFactor(coilSpan, nu = 1) {
+                const { slots, poles } = this.params;
+                const poleSpan = slots / poles;
+                const epsilon = (1 - coilSpan / poleSpan) * Math.PI;
+                return Math.cos((nu * epsilon) / 2);
+            }
+
+            calculateWindingFactor(coilSpan, nu = 1) {
+                return this.calculateHarmonicDistributionFactor(nu) * this.calculateHarmonicPitchFactor(coilSpan, nu);
+            }
+
+            // Spatial MMF harmonic spectrum (5th, 7th, 11th, 13th, 17th, 19th)
+            calculateHarmonicSpectrum(coilSpan) {
+                const orders = [5, 7, 11, 13, 17, 19];
+                const kw1 = Math.abs(this.calculateWindingFactor(coilSpan, 1)) || 1e-6;
+                let sumSq = 0;
+
+                const magnitudes = orders.map(nu => {
+                    const kwNu = Math.abs(this.calculateWindingFactor(coilSpan, nu));
+                    const relPct = (kwNu / (nu * kw1)) * 100;
+                    sumSq += relPct * relPct;
+                    return Number(relPct.toFixed(2));
+                });
+
+                return {
+                    orders: orders.map(n => `${n}th`),
+                    numericOrders: orders,
+                    magnitudes,
+                    thd: Math.sqrt(sumSq)
+                };
+            }
+
+            // IEC 60034-30-1 Target Efficiency Table (50Hz/60Hz baseline)
+            getTargetEfficiency() {
+                const { power, poles, ieClass, frequency } = this.params;
+                const table = {
+                    IE2: {
+                        2: { 0.75: 77.4, 1.5: 81.3, 3: 84.6, 5.5: 87.0, 7.5: 88.1, 11: 89.4, 15: 90.3, 22: 91.3, 37: 92.5, 75: 93.8, 160: 94.8, 375: 95.0 },
+                        4: { 0.75: 79.6, 1.5: 82.8, 3: 85.5, 5.5: 87.7, 7.5: 88.7, 11: 89.8, 15: 90.6, 22: 91.6, 37: 92.7, 75: 94.0, 160: 94.9, 375: 95.1 },
+                        6: { 0.75: 75.9, 1.5: 79.8, 3: 83.3, 5.5: 86.0, 7.5: 87.2, 11: 88.7, 15: 89.7, 22: 90.9, 37: 92.2, 75: 93.7, 160: 94.8, 375: 95.0 }
+                    },
+                    IE3: {
+                        2: { 0.75: 80.7, 1.5: 84.2, 3: 87.1, 5.5: 89.2, 7.5: 90.1, 11: 91.2, 15: 91.9, 22: 92.7, 37: 93.7, 75: 94.7, 160: 95.6, 375: 95.8 },
+                        4: { 0.75: 82.5, 1.5: 85.3, 3: 87.7, 5.5: 89.6, 7.5: 90.4, 11: 91.4, 15: 92.1, 22: 93.0, 37: 93.9, 75: 95.0, 160: 95.8, 375: 96.0 },
+                        6: { 0.75: 78.9, 1.5: 82.5, 3: 85.6, 5.5: 88.0, 7.5: 89.1, 11: 90.3, 15: 91.2, 22: 92.2, 37: 93.3, 75: 94.6, 160: 95.6, 375: 95.8 }
+                    },
+                    IE4: {
+                        2: { 0.75: 83.5, 1.5: 86.5, 3: 89.1, 5.5: 90.9, 7.5: 91.7, 11: 92.6, 15: 93.3, 22: 94.0, 37: 94.8, 75: 95.6, 160: 96.3, 375: 96.5 },
+                        4: { 0.75: 85.7, 1.5: 88.2, 3: 90.4, 5.5: 91.9, 7.5: 92.6, 11: 93.3, 15: 93.9, 22: 94.5, 37: 95.2, 75: 96.0, 160: 96.6, 375: 96.7 },
+                        6: { 0.75: 82.7, 1.5: 85.9, 3: 88.6, 5.5: 90.5, 7.5: 91.3, 11: 92.3, 15: 92.9, 22: 93.7, 37: 94.5, 75: 95.4, 160: 96.2, 375: 96.4 }
+                    }
+                };
+
+                const poleKey = poles <= 2 ? 2 : (poles <= 4 ? 4 : 6);
+                const curve = table[ieClass][poleKey];
+                const powers = Object.keys(curve).map(Number).sort((a, b) => a - b);
+
+                // Log-linear interpolation between standard IEC power points
+                let eff;
+                if (power <= powers[0]) {
+                    eff = curve[powers[0]];
+                } else if (power >= powers[powers.length - 1]) {
+                    eff = curve[powers[powers.length - 1]];
+                } else {
+                    const idx = powers.findIndex(p => p >= power);
+                    const p1 = powers[idx - 1], p2 = powers[idx];
+                    const t = (Math.log10(power) - Math.log10(p1)) / (Math.log10(p2) - Math.log10(p1));
+                    eff = curve[p1] + t * (curve[p2] - curve[p1]);
+                }
+
+                // 60Hz motors typically achieve ~0.4% higher efficiency per IEC 60034-30-1
+                if (frequency >= 60) eff = Math.min(97.5, eff + 0.4);
+                return eff;
+            }
+
+            // Determine IEC/NEMA Frame Size & Estimated Stator Geometry (meters)
+            getFrameData() {
+                const { power, standard, frameSize } = this.params;
+                let code = frameSize;
+
+                if (code === 'auto') {
+                    if (standard === 'IEC') {
+                        if (power <= 1.5) code = '90';
+                        else if (power <= 4) code = '112';
+                        else if (power <= 7.5) code = '132';
+                        else if (power <= 15) code = '160';
+                        else if (power <= 22) code = '180';
+                        else if (power <= 37) code = '200';
+                        else if (power <= 55) code = '225';
+                        else code = '280';
+                    } else {
+                        if (power <= 2) code = 'NEMA143T';
+                        else if (power <= 5.5) code = 'NEMA182T';
+                        else if (power <= 11) code = 'NEMA213T';
+                        else code = 'NEMA254T';
+                    }
+                }
+
+                // Approximate shaft height H (mm) for thermal & MLT scaling
+                const heightMap = {
+                    '90': 90, '112': 112, '132': 132, '160': 160, '180': 180,
+                    '200': 200, '225': 225, '280': 280,
+                    'NEMA143T': 90, 'NEMA182T': 114, 'NEMA213T': 133, 'NEMA254T': 159
+                };
+                const frameHeightMm = heightMap[code] || 132;
+                const boreDiameter = (frameHeightMm * 1.12) / 1000; // meters
+                const stackLength = (frameHeightMm * 1.25) / 1000;  // meters
+
+                return { code, frameHeightMm, boreDiameter, stackLength };
+            }
+
+            // Generate all candidate coil spans and identify optimal span
+            generateSpans() {
+                const { slots, poles } = this.params;
+                const poleSpan = slots / poles;
+                const minSpan = Math.max(1, Math.floor(poleSpan * 0.65));
+                const maxSpan = Math.max(minSpan, Math.round(poleSpan));
+                const idealFiveSixth = Math.round((poleSpan * 5) / 6);
+
+                const spans = [];
+                for (let s = minSpan; s <= maxSpan; s++) {
+                    const kw1 = Math.abs(this.calculateWindingFactor(s, 1));
+                    const kp1 = Math.abs(this.calculateHarmonicPitchFactor(s, 1));
+                    const kd1 = Math.abs(this.calculateHarmonicDistributionFactor(1));
+                    const pct = (s / poleSpan) * 100;
+                    const harmonics = this.calculateHarmonicSpectrum(s);
+
+                    spans.push({
+                        span: s,
+                        percentage: pct,
+                        windingFactor: kw1,
+                        pitchFactor: kp1,
+                        distributionFactor: kd1,
+                        thd: harmonics.thd,
+                        harmonics,
+                        description: Math.abs(pct - 100) < 0.5 ? 'Full Pitch (100%)' : `${pct.toFixed(1)}% Pitch`,
+                        isOptimal: s === idealFiveSixth,
+                        recommendation: this.getSpanRecommendation(kw1, harmonics.thd, pct)
+                    });
+                }
+
+                // Fallback if idealFiveSixth wasn't in range
+                if (!spans.some(sp => sp.isOptimal) && spans.length > 0) {
+                    spans[Math.floor(spans.length / 2)].isOptimal = true;
+                }
+
+                return spans;
+            }
+
+            getSpanRecommendation(kw1, thd, pct) {
+                if (Math.abs(pct - 100) < 0.5) return '⚡ Max Fundamental EMF';
+                if (kw1 >= 0.90 && thd < 5.0) return '⭐ Optimal Balance';
+                if (thd < 4.5) return '🔇 Low Harmonics';
+                if (kw1 >= 0.92) return '✅ High Winding Factor';
+                return '⚖️ Acceptable';
+            }
+
+            // Accurate Stator Phase Resistance (Ohm) with IEC temperature correction
+            calculatePhaseResistance(activeSpan, frameData) {
+                const { slots, poles, wireDiameter, turnsPerCoil, windingType, parallelPaths, testTemperature, insulationClass } = this.params;
+                const rho20 = 1.724e-8; // Copper resistivity at 20°C (Ohm·m)
+
+                const polePitch = (Math.PI * frameData.boreDiameter) / poles;
+                const pitchRatio = activeSpan / (slots / poles);
+                const coilPitchM = polePitch * pitchRatio;
+
+                // Mean Length of Turn (MLT) in meters: 2*L_stack + end-turn overhang
+                const mlt = 2 * frameData.stackLength + 2.55 * coilPitchM + 0.04;
+
+                // Coils per phase (double layer: S/3 coils/phase, single layer: S/6 coils/phase)
+                const coilsPerPhase = windingType === 'double' ? (slots / 3) : (slots / 6);
+                const effectiveTurnsPerBranch = (coilsPerPhase * turnsPerCoil) / parallelPaths;
+                const wireLengthPerBranch = effectiveTurnsPerBranch * mlt;
+
+                // Wire cross-section in m²
+                const dMeters = wireDiameter * 1e-3;
+                const wireAreaM2 = Math.PI * Math.pow(dMeters / 2, 2);
+
+                // Parallel branches reduce resistance by factor of parallelPaths
+                const r20 = (rho20 * wireLengthPerBranch) / (wireAreaM2 * parallelPaths);
+
+                // IEC 60034-2-1 reference temperatures by insulation class
+                const refTempMap = { B: 95, F: 115, H: 130 };
+                const refTemp = refTempMap[insulationClass] || 115;
+
+                // Resistance at test temperature and corrected to reference temperature
+                const rTest = r20 * ((234.5 + testTemperature) / (234.5 + 20));
+                const rRef = rTest * ((234.5 + refTemp) / (234.5 + testTemperature));
+
+                return { r20, rTest, rRef, mlt, refTemp };
+            }
+
+            // Realistic rated slip s_n based on shaft power & poles
+            estimateRatedSlip() {
+                const { power, poles } = this.params;
+                // Typical IEC induction motor slip: ~4.2% at 0.75kW down to ~1.0% at 300kW
+                const baseSlip = 0.042 * Math.pow(Math.max(0.5, power), -0.22);
+                const poleFactor = 1 + (poles - 4) * 0.05;
+                return Math.min(0.075, Math.max(0.008, baseSlip * poleFactor));
+            }
+
+            // Slot fill analysis
+            calculateSlotFillDetails() {
+                const wireDiameterMm = this.params.wireDiameter;
+                const turns = this.params.turnsPerCoil;
+                const layers = this.params.windingType === 'double' ? 2 : 1;
+
+                const wireAreaMm2 = Math.PI * Math.pow(wireDiameterMm / 2, 2);
+                const totalCopperAreaMm2 = wireAreaMm2 * turns * layers;
+                const slotAreaMm2 = totalCopperAreaMm2 / this.params.slotFillFactor;
+
+                return {
+                    fillFactor: this.params.slotFillFactor,
+                    copperArea: totalCopperAreaMm2,
+                    slotArea: slotAreaMm2,
+                    copperPercentage: this.params.slotFillFactor * 100,
+                    windingType: this.params.windingType,
+                    conductorsPerSlot: turns * layers,
+                    coilSidesPerSlot: layers
+                };
+            }
+
+            // Complete Physics-Consistent Loss & Efficiency Analysis
+            calculateLossesAndCurrent(activeSpan, frameData) {
+                const P_out = this.params.power * 1000; // Mechanical shaft output (W)
+                const V_L = this.params.voltage;
+                const pf = this.params.powerFactor;
+                const targetEff = this.getTargetEfficiency();
+                const ratedSlip = this.estimateRatedSlip();
+                const resData = this.calculatePhaseResistance(activeSpan, frameData);
+
+                // IEC 60034-2-1 Stray Load Loss allowance factor
+                let strayFactor = 0.025;
+                if (this.params.power >= 10000) {
+                    strayFactor = 0.005;
+                } else if (this.params.power > 1) {
+                    strayFactor = 0.025 - 0.005 * Math.log10(this.params.power);
+                }
+
+                // Target total loss envelope for calibrating core & mechanical loss baselines
+                const targetTotalLoss = P_out * (1 / (targetEff / 100) - 1);
+                const freqScale = this.params.frequency / 50;
+                const enclosureMechFactor = this.params.enclosureType === 'ODP' ? 0.85 : 1.05;
+
+                // Iterative convergence (3 passes) so I_L, P_in, and 5-part losses are self-consistent
+                let eta = targetEff / 100;
+                let P_in = P_out / eta;
+                let I_line = 0, I_phase = 0;
+                let P_cu_s = 0, P_cu_r = 0, P_fe = 0, P_mech = 0, P_stray = 0;
+
+                for (let iter = 0; iter < 3; iter++) {
+                    P_in = P_out / Math.max(0.2, eta);
+                    I_line = P_in / (Math.sqrt(3) * V_L * pf);
+                    I_phase = this.params.connectionType === 'delta' ? I_line / Math.sqrt(3) : I_line;
+
+                    P_cu_s = 3 * I_phase * I_phase * resData.rRef;
+                    P_mech = targetTotalLoss * 0.14 * enclosureMechFactor * Math.pow(freqScale, 0.4);
+                    P_fe = targetTotalLoss * 0.22 * Math.pow(freqScale, 0.3);
+                    P_cu_r = (ratedSlip / (1 - ratedSlip)) * (P_out + P_mech);
+                    P_stray = strayFactor * P_in;
+
+                    const totalAutoLoss = P_cu_s + P_cu_r + P_fe + P_mech + P_stray;
+                    eta = P_out / (P_out + totalAutoLoss);
+                }
+
+                // Check Manual Loss Override
+                let isManual = false;
+                if (this.params.useManualLosses) {
+                    isManual = true;
+                    const readOpt = (id, fallback) => {
+                        const raw = document.getElementById(id).value;
+                        if (raw === '' || raw === null) return fallback;
+                        const v = parseFloat(raw);
+                        return Number.isFinite(v) && v >= 0 ? v : fallback;
+                    };
+                    P_cu_s = readOpt('manualStatorCopperLoss', P_cu_s);
+                    P_cu_r = readOpt('manualRotorCopperLoss', P_cu_r);
+                    P_fe = readOpt('manualIronLoss', P_fe);
+                    P_mech = readOpt('manualMechanicalLoss', P_mech);
+                    P_stray = readOpt('manualStrayLoss', P_stray);
+                }
+
+                const totalLoss = P_cu_s + P_cu_r + P_fe + P_mech + P_stray;
+                const finalEff = (P_out / (P_out + totalLoss)) * 100;
+                P_in = P_out + totalLoss;
+                I_line = P_in / (Math.sqrt(3) * V_L * pf);
+                I_phase = this.params.connectionType === 'delta' ? I_line / Math.sqrt(3) : I_line;
+
+                return {
+                    statorCopper: P_cu_s,
+                    rotorCopper: P_cu_r,
+                    iron: P_fe,
+                    mechanical: P_mech,
+                    stray: P_stray,
+                    total: totalLoss,
+                    inputPower: P_in,
+                    outputPower: P_out,
+                    efficiency: finalEff,
+                    targetEfficiency: targetEff,
+                    meetsIE: finalEff >= targetEff - 0.3,
+                    isManual,
+                    lineCurrent: I_line,
+                    phaseCurrent: I_phase,
+                    ratedSlip,
+                    resistance: resData
+                };
+            }
+
+            // Generate all physics-driven chart datasets
+            generatePerformanceData(losses, activeSpanObj, frameData) {
+                const { frequency, poles, voltage, powerFactor, ambientTemperature, insulationClass, enclosureType } = this.params;
+                const P_out = losses.outputPower;
+                const P_const = losses.iron + losses.mechanical;
+                const P_var = losses.statorCopper + losses.rotorCopper + losses.stray;
+
+                // 1. Efficiency & Power Factor vs Load (25% to 125%)
+                const loadPoints = [0.25, 0.50, 0.75, 1.00, 1.10, 1.25];
+                const I_rated = losses.lineCurrent;
+                const I_mag = I_rated * Math.sin(Math.acos(Math.min(0.99, Math.max(0.1, powerFactor))));
+
+                const effCurve = [];
+                const pfCurve = [];
+                loadPoints.forEach(x => {
+                    const pMech = x * P_out;
+                    const pLoss = P_const + x * x * P_var;
+                    const pIn = pMech + pLoss;
+                    const etaPct = (pMech / pIn) * 100;
+                    const iActive = pIn / (Math.sqrt(3) * voltage);
+                    const iTot = Math.sqrt(I_mag * I_mag + iActive * iActive);
+                    const pfPct = (iActive / iTot) * 100;
+
+                    effCurve.push(Number(etaPct.toFixed(2)));
+                    pfCurve.push(Number(pfPct.toFixed(1)));
+                });
+
+                // 2. Current vs Load (0% to 125%)
+                const currentLoadPoints = [0, 0.25, 0.50, 0.75, 1.00, 1.10, 1.25];
+                const currentCurve = currentLoadPoints.map(x => {
+                    const pIn = x * P_out + P_const + x * x * P_var;
+                    const iActive = pIn / (Math.sqrt(3) * voltage);
+                    return Number(Math.sqrt(I_mag * I_mag + iActive * iActive).toFixed(2));
+                });
+
+                // 3. Torque-Speed Curve using Kloss Formula (0 to Ns RPM, 32 smooth points)
+                const Ns = (120 * frequency) / poles;
+                const s_n = losses.ratedSlip;
+                const N_n = Ns * (1 - s_n);
+                const T_n = P_out / ((2 * Math.PI * N_n) / 60);
+
+                // Breakdown torque ratio (typical IEC Design N / NEMA B: 2.4 - 2.8)
+                const k_max = 2.6;
+                const T_max = k_max * T_n;
+                const s_max = s_n * (k_max + Math.sqrt(k_max * k_max - 1));
+
+                const klossTorque = (s) => {
+                    if (s <= 1e-6) return 0;
+                    return (2 * T_max) / (s / s_max + s_max / s);
+                };
+
+                const torqueSpeedCurve = [];
+                const steps = 32;
+                for (let i = 0; i <= steps; i++) {
+                    const rpm = (Ns * i) / steps;
+                    const s = 1 - rpm / Ns;
+                    torqueSpeedCurve.push({ x: Number(rpm.toFixed(1)), y: Number(klossTorque(s).toFixed(2)) });
+                }
+
+                // Key operating points
+                const T_lrt = klossTorque(1.0);
+                const N_max = Ns * (1 - s_max);
+                const keyPoints = [
+                    { x: 0, y: Number(T_lrt.toFixed(2)), label: `Locked-Rotor (${T_lrt.toFixed(1)} Nm)` },
+                    { x: Number(N_max.toFixed(1)), y: Number(T_max.toFixed(2)), label: `Breakdown (${T_max.toFixed(1)} Nm @ ${N_max.toFixed(0)} RPM)` },
+                    { x: Number(N_n.toFixed(1)), y: Number(T_n.toFixed(2)), label: `Rated (${T_n.toFixed(1)} Nm @ ${N_n.toFixed(0)} RPM)` }
+                ];
+
+                // 4. Thermal Profile vs Insulation Limit
+                const limitMap = { B: 130, F: 155, H: 180 };
+                const insLimit = limitMap[insulationClass] || 155;
+                // Surface area scales roughly with frameHeight^2; R_th (°C/W) scales inversely
+                const coolingFactor = { ODP: 0.78, IP55: 1.0, TEFC: 1.0, IP56: 1.08 }[enclosureType] || 1.0;
+                const rThBase = (1.65 / Math.pow(frameData.frameHeightMm / 100, 1.85)) * coolingFactor;
+
+                const dT_winding = Math.min(140, (losses.total * rThBase * 0.52) + (losses.statorCopper * rThBase * 0.35));
+                const dT_core = dT_winding * 0.84;
+                const dT_bearing = dT_winding * 0.58;
+                const dT_frame = dT_winding * 0.45;
+
+                const thermalTemps = [
+                    Number((ambientTemperature + dT_winding).toFixed(1)),
+                    Number((ambientTemperature + dT_core).toFixed(1)),
+                    Number((ambientTemperature + dT_bearing).toFixed(1)),
+                    Number((ambientTemperature + dT_frame).toFixed(1))
+                ];
+
+                return {
+                    efficiencyVsLoad: {
+                        labels: loadPoints.map(x => `${Math.round(x * 100)}%`),
+                        efficiency: effCurve,
+                        powerFactor: pfCurve
+                    },
+                    currentVsLoad: {
+                        labels: currentLoadPoints.map(x => `${Math.round(x * 100)}%`),
+                        current: currentCurve
+                    },
+                    torqueSpeed: {
+                        Ns,
+                        ratedSpeed: N_n,
+                        ratedTorque: T_n,
+                        breakdownTorque: T_max,
+                        lockedRotorTorque: T_lrt,
+                        curve: torqueSpeedCurve,
+                        keyPoints
+                    },
+                    harmonics: activeSpanObj.harmonics,
+                    thermal: {
+                        locations: ['Winding Hot-Spot', 'Stator Core', 'Rotor / Bearing', 'Frame Surface'],
+                        temperatures: thermalTemps,
+                        limit: insLimit,
+                        margin: insLimit - thermalTemps[0]
+                    }
+                };
+            }
+
+            performAnalysis() {
+                const frameData = this.getFrameData();
+                const spans = this.generateSpans();
+
+                // Pick forced span if valid for current slot/pole combo, else optimal span
+                let activeSpanObj = spans.find(s => s.span === this.forcedSpan);
+                if (!activeSpanObj) {
+                    activeSpanObj = spans.find(s => s.isOptimal) || spans[0];
+                }
+
+                const losses = this.calculateLossesAndCurrent(activeSpanObj.span, frameData);
+                const slotFill = this.calculateSlotFillDetails();
+                const performance = this.generatePerformanceData(losses, activeSpanObj, frameData);
+
+                // Normalized 0–100 Design Score
+                const effScore = Math.min(1, losses.efficiency / 96) * 35;
+                const kwScore = Math.min(1, activeSpanObj.windingFactor / 0.96) * 25;
+                const thdScore = Math.max(0, 1 - activeSpanObj.harmonics.thd / 20) * 20;
+                const thermalScore = Math.max(0, Math.min(1, (performance.thermal.margin + 10) / 45)) * 20;
+                const designScore = Math.round(Math.max(0, Math.min(100, effScore + kwScore + thdScore + thermalScore)));
+
+                return {
+                    params: this.params,
+                    basic: {
+                        slotsPerPole: this.params.slots / this.params.poles,
+                        slotsPerPolePerPhase: this.params.slots / (this.params.poles * this.params.phases),
+                        distributionFactor: activeSpanObj.distributionFactor,
+                        pitchFactor: activeSpanObj.pitchFactor,
+                        windingFactor: activeSpanObj.windingFactor,
+                        synchronousSpeed: performance.torqueSpeed.Ns,
+                        ratedSpeed: performance.torqueSpeed.ratedSpeed,
+                        ratedTorque: performance.torqueSpeed.ratedTorque,
+                        lineCurrent: losses.lineCurrent,
+                        phaseCurrent: losses.phaseCurrent,
+                        frameSize: frameData.code
+                    },
+                    activeSpan: activeSpanObj,
+                    spans,
+                    losses,
+                    slotFill,
+                    performance,
+                    designScore,
+                    ieClass: this.params.ieClass
+                };
+            }
+        }
+
+        /* =========================================================================
+           MAIN CALCULATION ORCHESTRATOR
+        ========================================================================= */
+        function calculateMotorDesign() {
+            try {
+                updateStatus('Calculating...', null);
+                const params = readAndValidateInputs();
+                const calculator = new IndustrialMotorCalculator(params, selectedSpanValue);
+                currentResults = calculator.performAnalysis();
+                selectedSpanValue = currentResults.activeSpan.span;
+
+                document.getElementById('activeSpanLabel').textContent = `1-${selectedSpanValue + 1} (y=${selectedSpanValue})`;
+
+                updateResultsDisplay();
+                updateSpanComparison();
+                updateOptimizationResults();
+                updateCharts();
+                create3DMotor();
+                if (currentMode === '2d') {
+                    draw2DMotor();
+                }
+
+                updateStatus('Ready', scene ? countSceneMeshes(motorGroup) : 0);
+            } catch (err) {
+                console.error('Calculation error:', err);
+                updateStatus('Error', 0);
+                showToast('Calculation error: check input parameters.');
+            }
+        }
+
+        function selectCoilSpan(spanValue) {
+            selectedSpanValue = spanValue;
+            calculateMotorDesign();
+            showToast(`Active coil span updated to y = ${spanValue} (1-${spanValue + 1})`);
+        }
+
+        function countSceneMeshes(group) {
+            let count = 0;
+            if (!group) return 0;
+            group.traverse(obj => { if (obj.isMesh) count++; });
+            return count;
+        }
+
+        /* =========================================================================
+           UI RENDERERS (Results, Spans, Optimization)
+        ========================================================================= */
+        function updateResultsDisplay() {
+            if (!currentResults) return;
+            const { basic, losses, slotFill, ieClass, performance } = currentResults;
+            const ieBadge = losses.meetsIE
+                ? `<span class="industrial-badge">✓ MEETS ${ieClass}</span>`
+                : `<span class="industrial-badge badge-warn">BELOW ${ieClass} (${losses.targetEfficiency.toFixed(1)}%)</span>`;
+            const lossBadge = losses.isManual
+                ? `<span class="industrial-badge badge-blue">MANUAL</span>`
+                : `<span class="industrial-badge">IEC AUTO</span>`;
+
+            document.getElementById('motor-results').innerHTML = `
+                <div class="result-card">
+                    <h3><span>📋 Electrical &amp; Mechanical</span> ${ieBadge}</h3>
+                    <div class="result-grid">
+                        <div class="result-item">
+                            <div class="result-label">Frame Size</div>
+                            <span class="result-value">${basic.frameSize}</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Sync / Rated Speed</div>
+                            <span class="result-value">${basic.synchronousSpeed.toFixed(0)} / ${basic.ratedSpeed.toFixed(0)} RPM</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Line / Phase Current</div>
+                            <span class="result-value">${basic.lineCurrent.toFixed(1)} / ${basic.phaseCurrent.toFixed(1)} A</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Rated Shaft Torque</div>
+                            <span class="result-value">${basic.ratedTorque.toFixed(1)} Nm</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Calculated Efficiency</div>
+                            <span class="result-value">${losses.efficiency.toFixed(2)}%</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Winding Factor (k<sub>w1</sub>)</div>
+                            <span class="result-value">${basic.windingFactor.toFixed(4)}</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Phase Res. R<sub>ph</sub> (${losses.resistance.refTemp}°C)</div>
+                            <span class="result-value">${losses.resistance.rRef.toFixed(3)} &Omega;</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Winding Hot-Spot</div>
+                            <span class="result-value" style="color:${performance.thermal.margin < 0 ? '#dc2626' : '#1e40af'}">
+                                ${performance.thermal.temperatures[0]}°C / ${performance.thermal.limit}°C
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-card">
+                    <h3><span>⚡ 5-Part Loss Segregation</span> ${lossBadge}</h3>
+                    <div class="result-grid">
+                        <div class="result-item">
+                            <div class="result-label">Stator Copper (P<sub>cu,s</sub>)</div>
+                            <span class="result-value">${losses.statorCopper.toFixed(0)} W</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Rotor Copper (P<sub>cu,r</sub>)</div>
+                            <span class="result-value">${losses.rotorCopper.toFixed(0)} W</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Core / Iron (P<sub>fe</sub>)</div>
+                            <span class="result-value">${losses.iron.toFixed(0)} W</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Mechanical (P<sub>fw</sub>)</div>
+                            <span class="result-value">${losses.mechanical.toFixed(0)} W</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Stray Load (P<sub>stray</sub>)</div>
+                            <span class="result-value">${losses.stray.toFixed(0)} W</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Total Loss / P<sub>in</sub></div>
+                            <span class="result-value">${losses.total.toFixed(0)} W / ${(losses.inputPower / 1000).toFixed(2)} kW</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-card">
+                    <h3><span>🔧 Slot Fill &amp; Winding</span> <span class="industrial-badge badge-blue">${slotFill.windingType.toUpperCase()}</span></h3>
+                    <div class="result-grid">
+                        <div class="result-item">
+                            <div class="result-label">Slots/Pole/Phase (q)</div>
+                            <span class="result-value">${basic.slotsPerPolePerPhase.toFixed(2)}</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Slot Fill Factor</div>
+                            <span class="result-value">${(slotFill.fillFactor * 100).toFixed(0)}%</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Copper / Slot Area</div>
+                            <span class="result-value">${slotFill.copperArea.toFixed(1)} / ${slotFill.slotArea.toFixed(1)} mm²</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Conductors / Slot</div>
+                            <span class="result-value">${slotFill.conductorsPerSlot}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateSpanComparison() {
+            if (!currentResults) return;
+            const { activeSpan, spans } = currentResults;
+
+            let rows = spans.map(sp => {
+                const isActive = sp.span === activeSpan.span;
+                const cls = `${isActive ? 'span-active' : ''} ${sp.isOptimal ? 'span-optimal' : ''}`;
+                return `
+                    <tr class="${cls}" onclick="selectCoilSpan(${sp.span})" title="Click to apply coil span y=${sp.span}">
+                        <td>1-${sp.span + 1} (y=${sp.span})</td>
+                        <td>${sp.percentage.toFixed(1)}%</td>
+                        <td>${sp.windingFactor.toFixed(4)}</td>
+                        <td>${sp.thd.toFixed(2)}%</td>
+                        <td>${isActive ? '🔵 ACTIVE' : (sp.isOptimal ? '⭐ Optimal' : sp.recommendation)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('span-comparison').innerHTML = `
+                <div class="result-card">
+                    <h3><span>🎯 Interactive Coil Span Analysis</span> <span class="industrial-badge">CLICK ROW</span></h3>
+                    <div class="span-selection">
+                        <div style="font-weight:700; font-size:0.88rem; color:#1e3a8a;">
+                            Active Span: 1-${activeSpan.span + 1} (y = ${activeSpan.span}, ${activeSpan.description})
+                        </div>
+                        <div class="span-info">
+                            <div class="span-detail"><strong>Winding Factor</strong><br>${activeSpan.windingFactor.toFixed(4)}</div>
+                            <div class="span-detail"><strong>Pitch Factor (k<sub>p1</sub>)</strong><br>${activeSpan.pitchFactor.toFixed(4)}</div>
+                            <div class="span-detail"><strong>MMF Harmonic THD</strong><br>${activeSpan.thd.toFixed(2)}%</div>
+                            <div class="span-detail"><strong>Assessment</strong><br>${activeSpan.recommendation}</div>
+                        </div>
+                    </div>
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Span</th>
+                                <th>Pitch</th>
+                                <th>k<sub>w1</sub></th>
+                                <th>THD</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function updateOptimizationResults() {
+            if (!currentResults) return;
+            const { designScore, activeSpan, losses, performance, ieClass, slotFill } = currentResults;
+            const thermalMargin = performance.thermal.margin;
+            const scoreColor = designScore >= 80 ? '#059669' : (designScore >= 60 ? '#d97706' : '#dc2626');
+
+            const tips = [];
+            if (!losses.meetsIE) {
+                tips.push(`Efficiency (${losses.efficiency.toFixed(2)}%) is below ${ieClass} target (${losses.targetEfficiency.toFixed(1)}%). Consider increasing wire diameter or parallel paths to cut stator copper losses (${losses.statorCopper.toFixed(0)} W).`);
+            }
+            if (thermalMargin < 15) {
+                tips.push(`Thermal margin is tight (${thermalMargin.toFixed(1)}°C). Consider upgrading insulation class or reducing current density.`);
+            }
+            if (activeSpan.harmonics.thd > 6.0) {
+                tips.push(`MMF harmonic THD (${activeSpan.harmonics.thd.toFixed(2)}%) can be reduced by selecting a ~5/6 chorded coil span in the Spans tab.`);
+            }
+            if (tips.length === 0) {
+                tips.push(`Design is well balanced across efficiency, harmonic suppression, slot fill (${(slotFill.fillFactor * 100).toFixed(0)}%), and thermal headroom (+${thermalMargin.toFixed(1)}°C).`);
+            }
+
+            document.getElementById('optimization-results').innerHTML = `
+                <div class="result-card">
+                    <h3><span>⚙️ Multi-Objective Design Score</span></h3>
+                    <div class="result-grid" style="margin-bottom:12px;">
+                        <div class="result-item">
+                            <div class="result-label">Normalized Score</div>
+                            <span class="result-value" style="font-size:1.45rem; color:${scoreColor};">${designScore} / 100</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Thermal Margin</div>
+                            <span class="result-value" style="color:${thermalMargin < 0 ? '#dc2626' : '#059669'};">${thermalMargin >= 0 ? '+' : ''}${thermalMargin.toFixed(1)}°C</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">MMF Harmonic THD</div>
+                            <span class="result-value">${activeSpan.harmonics.thd.toFixed(2)}%</span>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Breakdown / Rated Torque</div>
+                            <span class="result-value">${(performance.torqueSpeed.breakdownTorque / performance.torqueSpeed.ratedTorque).toFixed(2)}×</span>
+                        </div>
+                    </div>
+                    <div class="alert ${losses.meetsIE && thermalMargin >= 10 ? 'alert-success' : 'alert-warning'}">
+                        <strong>Engineering Recommendations:</strong>
+                        <ul style="margin:6px 0 0 18px;">
+                            ${tips.map(t => `<li style="margin-bottom:4px;">${t}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        /* =========================================================================
+           CHART.JS INITIALIZATION & PHYSICS-DRIVEN UPDATES (All 6 Charts)
+        ========================================================================= */
+        function initCharts() {
+            const commonFont = { family: 'Inter, sans-serif', size: 11 };
+
+            // 1. Efficiency & Power Factor vs Load
+            charts.efficiency = new Chart(document.getElementById('efficiencyChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Efficiency (%)',
+                            data: [],
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Power Factor (%)',
+                            data: [],
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                            borderDash: [5, 4],
+                            tension: 0.35,
+                            pointRadius: 4,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Efficiency & Power Factor vs Load', font: { size: 12, weight: '700' } },
+                        legend: { labels: { font: commonFont, boxWidth: 12 } }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Shaft Load (%)', font: commonFont } },
+                        y: { position: 'left', title: { display: true, text: 'Efficiency (%)', font: commonFont }, suggestedMin: 70, max: 100 },
+                        y1: { position: 'right', title: { display: true, text: 'PF (%)', font: commonFont }, min: 40, max: 100, grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+
+            // 2. Torque-Speed Curve (Kloss Formula on Linear RPM Axis)
+            charts.torqueSpeed = new Chart(document.getElementById('torqueSpeedChart'), {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Torque-Speed Curve',
+                            data: [],
+                            showLine: true,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                            fill: true,
+                            tension: 0.25,
+                            pointRadius: 0,
+                            borderWidth: 2.5
+                        },
+                        {
+                            label: 'Key Points (LRT / Max / Rated)',
+                            data: [],
+                            showLine: false,
+                            backgroundColor: ['#f59e0b', '#ef4444', '#2563eb'],
+                            borderColor: '#ffffff',
+                            borderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Torque-Speed Characteristic (Kloss)', font: { size: 12, weight: '700' } },
+                        legend: { labels: { font: commonFont, boxWidth: 12 } },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => {
+                                    const pt = ctx.raw;
+                                    return pt.label ? pt.label : `${pt.y} Nm @ ${pt.x} RPM`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { type: 'linear', min: 0, title: { display: true, text: 'Rotor Speed (RPM)', font: commonFont } },
+                        y: { min: 0, title: { display: true, text: 'Torque (Nm)', font: commonFont } }
+                    }
+                }
+            });
+
+            // 3. 5-Part Loss Distribution Doughnut
+            charts.loss = new Chart(document.getElementById('lossChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Stator Copper', 'Rotor Copper', 'Core / Iron', 'Mechanical', 'Stray Load'],
+                    datasets: [{
+                        data: [1, 1, 1, 1, 1],
+                        backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#10b981', '#8b5cf6'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: '5-Part Loss Distribution (W & %)', font: { size: 12, weight: '700' } },
+                        legend: { position: 'right', labels: { font: commonFont, boxWidth: 11 } },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => {
+                                    const val = ctx.raw;
+                                    const sum = ctx.dataset.data.reduce((a, b) => a + b, 0) || 1;
+                                    return `${ctx.label}: ${val.toFixed(1)} W (${((val / sum) * 100).toFixed(1)}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 4. Line Current vs Load
+            charts.current = new Chart(document.getElementById('currentChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Line Current (A)',
+                        data: [],
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.14)',
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Line Current vs Shaft Load (0%–125%)', font: { size: 12, weight: '700' } },
+                        legend: { labels: { font: commonFont, boxWidth: 12 } }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Shaft Load (%)', font: commonFont } },
+                        y: { min: 0, title: { display: true, text: 'Current (A)', font: commonFont } }
+                    }
+                }
+            });
+
+            // 5. Spatial MMF Harmonic Spectrum
+            charts.harmonic = new Chart(document.getElementById('harmonicChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['5th', '7th', '11th', '13th', '17th', '19th'],
+                    datasets: [{
+                        label: 'MMF Harmonic (% of Fundamental)',
+                        data: [],
+                        backgroundColor: ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#06b6d4'],
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Spatial MMF Harmonic Spectrum', font: { size: 12, weight: '700' } },
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Spatial Harmonic Order (ν)', font: commonFont } },
+                        y: { min: 0, title: { display: true, text: '% of Fundamental', font: commonFont } }
+                    }
+                }
+            });
+
+            // 6. Thermal Profile vs Insulation Class Limit
+            charts.temperature = new Chart(document.getElementById('temperatureChart'), {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: 'Estimated Temp (°C)',
+                            data: [],
+                            backgroundColor: [],
+                            borderRadius: 6
+                        },
+                        {
+                            type: 'line',
+                            label: 'Insulation Limit (°C)',
+                            data: [],
+                            borderColor: '#dc2626',
+                            borderWidth: 2,
+                            borderDash: [6, 4],
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Thermal Profile vs Insulation Limit', font: { size: 12, weight: '700' } },
+                        legend: { labels: { font: commonFont, boxWidth: 12 } }
+                    },
+                    scales: {
+                        y: { min: 0, suggestedMax: 170, title: { display: true, text: 'Temperature (°C)', font: commonFont } }
+                    }
+                }
+            });
+        }
+
+        function updateCharts() {
+            if (!currentResults) return;
+            const { performance, losses, activeSpan } = currentResults;
+
+            // 1. Efficiency & PF
+            charts.efficiency.data.labels = performance.efficiencyVsLoad.labels;
+            charts.efficiency.data.datasets[0].data = performance.efficiencyVsLoad.efficiency;
+            charts.efficiency.data.datasets[1].data = performance.efficiencyVsLoad.powerFactor;
+            charts.efficiency.update();
+
+            // 2. Torque-Speed
+            charts.torqueSpeed.data.datasets[0].data = performance.torqueSpeed.curve;
+            charts.torqueSpeed.data.datasets[1].data = performance.torqueSpeed.keyPoints;
+            charts.torqueSpeed.options.scales.x.max = Math.ceil(performance.torqueSpeed.Ns * 1.04);
+            charts.torqueSpeed.options.plugins.title.text = `Torque-Speed Curve (Ns = ${performance.torqueSpeed.Ns.toFixed(0)} RPM)`;
+            charts.torqueSpeed.update();
+
+            // 3. 5-Part Losses
+            charts.loss.data.datasets[0].data = [
+                Number(losses.statorCopper.toFixed(1)),
+                Number(losses.rotorCopper.toFixed(1)),
+                Number(losses.iron.toFixed(1)),
+                Number(losses.mechanical.toFixed(1)),
+                Number(losses.stray.toFixed(1))
+            ];
+            charts.loss.update();
+
+            // 4. Current vs Load
+            charts.current.data.labels = performance.currentVsLoad.labels;
+            charts.current.data.datasets[0].data = performance.currentVsLoad.current;
+            charts.current.update();
+
+            // 5. MMF Harmonics
+            charts.harmonic.data.labels = performance.harmonics.orders;
+            charts.harmonic.data.datasets[0].data = performance.harmonics.magnitudes;
+            charts.harmonic.options.plugins.title.text = `MMF Harmonics (Span y=${activeSpan.span} | THD: ${performance.harmonics.thd.toFixed(2)}%)`;
+            charts.harmonic.update();
+
+            // 6. Thermal Profile
+            const { locations, temperatures, limit } = performance.thermal;
+            charts.temperature.data.labels = locations;
+            charts.temperature.data.datasets[0].data = temperatures;
+            charts.temperature.data.datasets[0].backgroundColor = temperatures.map(t =>
+                t >= limit ? '#dc2626' : (t >= limit - 15 ? '#f59e0b' : '#2563eb')
+            );
+            charts.temperature.data.datasets[1].data = locations.map(() => limit);
+            charts.temperature.data.datasets[1].label = `Class ${currentResults.params.insulationClass} Limit (${limit}°C)`;
+            charts.temperature.options.scales.y.suggestedMax = Math.max(limit + 20, Math.max(...temperatures) + 15);
+            charts.temperature.update();
+        }
+
+        function resizeAllCharts() {
+            Object.values(charts).forEach(ch => { if (ch) ch.resize(); });
+        }
+
+        /* =========================================================================
+           3D VIEWER (THREE.JS r128) WITH POLE-PHASE BELTS & TOUCH ORBIT
+        ========================================================================= */
+        function init3DViewer() {
+            const container = document.getElementById('threejs-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+
+            const w = container.clientWidth || 600;
+            const h = container.clientHeight || 600;
+
+            camera = new THREE.PerspectiveCamera(50, w / h, 0.5, 1200);
+            renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+            renderer.setSize(w, h);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Lighting setup
+            scene.add(new THREE.AmbientLight(0xcbd5e1, 0.55));
+            const keyLight = new THREE.DirectionalLight(0xffffff, 1.15);
+            keyLight.position.set(80, 110, 90);
+            keyLight.castShadow = true;
+            scene.add(keyLight);
+
+            const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.5);
+            rimLight.position.set(-90, 40, -80);
+            scene.add(rimLight);
+
+            motorGroup = new THREE.Group();
+            statorGroup = new THREE.Group();
+            rotorGroup = new THREE.Group();
+            windingGroup = new THREE.Group();
+            motorGroup.add(statorGroup, rotorGroup, windingGroup);
+            scene.add(motorGroup);
+
+            setupOrbitControls(container);
+        }
+
+        function setupOrbitControls(container) {
+            let isDragging = false;
+            let lastX = 0, lastY = 0;
+            let pinchStartDist = 0;
+
+            container.addEventListener('mousedown', e => {
+                if (e.button === 0) {
+                    isDragging = true;
+                    lastX = e.clientX;
+                    lastY = e.clientY;
+                }
+            });
+
+            window.addEventListener('mouseup', () => { isDragging = false; });
+
+            window.addEventListener('mousemove', e => {
+                if (!isDragging) return;
+                const dx = e.clientX - lastX;
+                const dy = e.clientY - lastY;
+                orbitState.targetRotationY -= dx * 0.008;
+                orbitState.targetRotationX = Math.max(-1.45, Math.min(1.45, orbitState.targetRotationX + dy * 0.008));
+                lastX = e.clientX;
+                lastY = e.clientY;
+            });
+
+            container.addEventListener('wheel', e => {
+                e.preventDefault();
+                const zoom = e.deltaY > 0 ? 1.09 : 0.92;
+                orbitState.targetDistance = Math.max(75, Math.min(340, orbitState.targetDistance * zoom));
+            }, { passive: false });
+
+            // Touch support for mobile/tablet
+            container.addEventListener('touchstart', e => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    lastX = e.touches[0].clientX;
+                    lastY = e.touches[0].clientY;
+                } else if (e.touches.length === 2) {
+                    isDragging = false;
+                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                    pinchStartDist = Math.hypot(dx, dy);
+                }
+            }, { passive: true });
+
+            container.addEventListener('touchmove', e => {
+                if (e.touches.length === 1 && isDragging) {
+                    const dx = e.touches[0].clientX - lastX;
+                    const dy = e.touches[0].clientY - lastY;
+                    orbitState.targetRotationY -= dx * 0.01;
+                    orbitState.targetRotationX = Math.max(-1.45, Math.min(1.45, orbitState.targetRotationX + dy * 0.01));
+                    lastX = e.touches[0].clientX;
+                    lastY = e.touches[0].clientY;
+                } else if (e.touches.length === 2 && pinchStartDist > 0) {
+                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                    const dist = Math.hypot(dx, dy);
+                    const scale = pinchStartDist / Math.max(10, dist);
+                    orbitState.targetDistance = Math.max(75, Math.min(340, orbitState.targetDistance * scale));
+                    pinchStartDist = dist;
+                }
+            }, { passive: true });
+
+            container.addEventListener('touchend', () => {
+                isDragging = false;
+                pinchStartDist = 0;
+            });
+        }
+
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+            orbitState.rotationX += (orbitState.targetRotationX - orbitState.rotationX) * 0.1;
+            orbitState.rotationY += (orbitState.targetRotationY - orbitState.rotationY) * 0.1;
+            orbitState.distance += (orbitState.targetDistance - orbitState.distance) * 0.1;
+
+            camera.position.x = Math.sin(orbitState.rotationY) * Math.cos(orbitState.rotationX) * orbitState.distance;
+            camera.position.y = Math.sin(orbitState.rotationX) * orbitState.distance;
+            camera.position.z = Math.cos(orbitState.rotationY) * Math.cos(orbitState.rotationX) * orbitState.distance;
+            camera.lookAt(0, 0, 0);
+
+            renderer.render(scene, camera);
+        }
+
+        function clearMotorGroup() {
+            [statorGroup, rotorGroup, windingGroup].forEach(group => {
+                while (group.children.length > 0) {
+                    const obj = group.children[0];
+                    obj.traverse(child => {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) {
+                            if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                            else child.material.dispose();
+                        }
+                    });
+                    group.remove(obj);
+                }
+            });
+        }
+
+        function create3DMotor() {
+            clearMotorGroup();
+            if (!currentResults) return;
+
+            const { slots, poles, windingType, wireDiameter } = currentResults.params;
+            const { slotFill, activeSpan } = currentResults;
+            const stackLength = 74;
+            const statorInnerR = 46;
+            const statorOuterR = 66;
+
+            // Hollow stator core ring via ExtrudeGeometry
+            const coreShape = new THREE.Shape();
+            coreShape.absarc(0, 0, statorOuterR, 0, Math.PI * 2, false);
+            const boreHole = new THREE.Path();
+            boreHole.absarc(0, 0, statorInnerR, 0, Math.PI * 2, true);
+            coreShape.holes.push(boreHole);
+
+            const coreGeo = new THREE.ExtrudeGeometry(coreShape, { depth: stackLength, bevelEnabled: false, curveSegments: Math.max(48, slots * 2) });
+            coreGeo.rotateX(Math.PI / 2);
+            coreGeo.translate(0, stackLength / 2, 0);
+
+            const coreMat = new THREE.MeshPhongMaterial({
+                color: 0x64748b,
+                transparent: true,
+                opacity: 0.55,
+                shininess: 35,
+                wireframe: wireframeEnabled
+            });
+            statorGroup.add(new THREE.Mesh(coreGeo, coreMat));
+
+            // Slots & copper fill
+            const slotDepth = 11;
+            const slotWidth = Math.min(5.2, (2 * Math.PI * statorInnerR) / (slots * 1.9));
+            const copperMat = new THREE.MeshPhongMaterial({ color: 0xc27834, shininess: 90 });
+            const linerMat = new THREE.MeshBasicMaterial({ color: 0xe2e8f0, transparent: true, opacity: 0.7 });
+
+            for (let i = 0; i < slots; i++) {
+                const angle = (2 * Math.PI * i) / slots;
+                const rSlot = statorInnerR + slotDepth / 2;
+                const slotHolder = new THREE.Group();
+                slotHolder.position.set(Math.cos(angle) * rSlot, 0, Math.sin(angle) * rSlot);
+                slotHolder.rotation.y = -angle;
+
+                if (showSlotFill) {
+                    const fillDepth = slotDepth * 0.85 * slotFill.fillFactor;
+                    if (windingType === 'double') {
+                        const topCu = new THREE.Mesh(new THREE.BoxGeometry(fillDepth / 2, stackLength * 0.98, slotWidth * 0.85), copperMat);
+                        topCu.position.x = -slotDepth * 0.2;
+                        const botCu = new THREE.Mesh(new THREE.BoxGeometry(fillDepth / 2, stackLength * 0.98, slotWidth * 0.85), copperMat);
+                        botCu.position.x = slotDepth * 0.22;
+                        const sep = new THREE.Mesh(new THREE.BoxGeometry(0.6, stackLength * 0.99, slotWidth * 0.9), linerMat);
+                        slotHolder.add(topCu, botCu, sep);
+                    } else {
+                        const singleCu = new THREE.Mesh(new THREE.BoxGeometry(fillDepth, stackLength * 0.98, slotWidth * 0.85), copperMat);
+                        slotHolder.add(singleCu);
+                    }
+                }
+                statorGroup.add(slotHolder);
+            }
+
+            // Rotor core, squirrel-cage bars & shaft
+            const rotorR = 39;
+            const rotorMesh = new THREE.Mesh(
+                new THREE.CylinderGeometry(rotorR, rotorR, stackLength * 0.92, 40),
+                new THREE.MeshPhongMaterial({ color: 0x475569, shininess: 45 })
+            );
+            rotorGroup.add(rotorMesh);
+
+            const barCount = Math.max(16, Math.round(slots * 0.78));
+            const barMat = new THREE.MeshPhongMaterial({ color: 0xf59e0b, shininess: 95 });
+            for (let b = 0; b < barCount; b++) {
+                const a = (2 * Math.PI * b) / barCount;
+                const bar = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, stackLength * 0.96, 8), barMat);
+                bar.position.set(Math.cos(a) * (rotorR - 2.2), 0, Math.sin(a) * (rotorR - 2.2));
+                rotorGroup.add(bar);
+            }
+
+            // End rings
+            const ringGeo = new THREE.TorusGeometry(rotorR - 2.2, 2.0, 10, 40);
+            ringGeo.rotateX(Math.PI / 2);
+            const topRing = new THREE.Mesh(ringGeo, barMat);
+            topRing.position.y = stackLength * 0.48;
+            const botRing = new THREE.Mesh(ringGeo, barMat);
+            botRing.position.y = -stackLength * 0.48;
+            rotorGroup.add(topRing, botRing);
+
+            // Steel shaft
+            const shaft = new THREE.Mesh(
+                new THREE.CylinderGeometry(10, 10, stackLength * 1.48, 24),
+                new THREE.MeshPhongMaterial({ color: 0x94a3b8, shininess: 110 })
+            );
+            rotorGroup.add(shaft);
+
+            // 3D End-Winding Coils using true pole-phase belt assignment
+            const span = activeSpan.span;
+            const tubeR = Math.max(0.75, Math.min(2.0, wireDiameter * 0.6));
+            const rCoilTop = statorInnerR + 3.5;
+            const rCoilBot = statorInnerR + 8.5;
+            const step = windingType === 'double' ? 1 : 2;
+
+            for (let i = 0; i < slots; i += step) {
+                const belt = getSlotPhaseBelt(i, slots, poles);
+                const color = PHASE_COLORS_INT[belt.phase];
+                const endSlot = (i + span) % slots;
+
+                const a1 = (2 * Math.PI * i) / slots;
+                const a2 = (2 * Math.PI * endSlot) / slots;
+                let aMid = a1 + (2 * Math.PI * span) / (2 * slots);
+
+                // Top overhang arch
+                const pTop1 = new THREE.Vector3(Math.cos(a1) * rCoilTop, stackLength / 2, Math.sin(a1) * rCoilTop);
+                const pTopPeak = new THREE.Vector3(Math.cos(aMid) * (rCoilTop + 7), stackLength / 2 + 15, Math.sin(aMid) * (rCoilTop + 7));
+                const pTop2 = new THREE.Vector3(Math.cos(a2) * rCoilBot, stackLength / 2, Math.sin(a2) * rCoilBot);
+
+                const topCurve = new THREE.CatmullRomCurve3([pTop1, pTopPeak, pTop2]);
+                const mat = new THREE.MeshPhongMaterial({ color, shininess: 75 });
+                windingGroup.add(new THREE.Mesh(new THREE.TubeGeometry(topCurve, 20, tubeR, 6, false), mat));
+
+                // Bottom overhang arch
+                const pBot1 = new THREE.Vector3(Math.cos(a1) * rCoilTop, -stackLength / 2, Math.sin(a1) * rCoilTop);
+                const pBotPeak = new THREE.Vector3(Math.cos(aMid) * (rCoilTop + 7), -stackLength / 2 - 15, Math.sin(aMid) * (rCoilTop + 7));
+                const pBot2 = new THREE.Vector3(Math.cos(a2) * rCoilBot, -stackLength / 2, Math.sin(a2) * rCoilBot);
+
+                const botCurve = new THREE.CatmullRomCurve3([pBot1, pBotPeak, pBot2]);
+                windingGroup.add(new THREE.Mesh(new THREE.TubeGeometry(botCurve, 20, tubeR, 6, false), mat));
+            }
+        }
+
+        /* =========================================================================
+           2D WINDING VIEWER WITH POLAR/CARTESIAN GRID & POLE-PHASE BELTS
+        ========================================================================= */
+        function init2DViewer() {
+            canvas2D = document.getElementById('motor2d-canvas');
+            ctx2D = canvas2D.getContext('2d');
+            resizeCanvas2D();
+        }
+
+        function resizeCanvas2D() {
+            const container = document.getElementById('twod-container');
+            if (!container || container.clientWidth === 0) return;
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            canvas2D.width = container.clientWidth * dpr;
+            canvas2D.height = container.clientHeight * dpr;
+            ctx2D.setTransform(dpr, 0, 0, dpr, 0, 0);
+            if (currentMode === '2d') draw2DMotor();
+        }
+
+        function draw2DMotor() {
+            if (!currentResults || !ctx2D) return;
+            const container = document.getElementById('twod-container');
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            if (w <= 0 || h <= 0) return;
+
+            render2DMotorToContext(ctx2D, w, h, false);
+        }
+
+        // Shared 2D renderer supporting both live canvas and offscreen high-res PDF capture
+        function render2DMotorToContext(ctx, w, h, fillBackground = false) {
+            if (!currentResults || !ctx || w <= 0 || h <= 0) return;
+
+            ctx.clearRect(0, 0, w, h);
+            if (fillBackground) {
+                ctx.fillStyle = '#f8fafc';
+                ctx.fillRect(0, 0, w, h);
+            }
+
+            const cx = w / 2;
+            const cy = h / 2;
+            const radius = Math.min(w, h) * 0.34;
+            const { slots, poles, windingType } = currentResults.params;
+            const { activeSpan } = currentResults;
+
+            // 1. Optional Engineering Polar/Cartesian Grid & Degree Markers
+            if (show2DGrid || fillBackground) {
+                draw2DEngineeringGrid(ctx, cx, cy, radius, w, h);
+            }
+
+            // 2. Stator Outer/Inner Rings & Rotor
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 10;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius + 24, 0, Math.PI * 2);
+            ctx.stroke();
+
+            const rotorGrad = ctx.createRadialGradient(cx, cy, 4, cx, cy, radius * 0.56);
+            rotorGrad.addColorStop(0, '#94a3b8');
+            rotorGrad.addColorStop(1, '#475569');
+            ctx.fillStyle = rotorGrad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius * 0.56, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius * 0.14, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 3. Draw End-Winding Coil Span Arcs (True Pole-Phase Belts)
+            const span = activeSpan.span;
+            const step = windingType === 'double' ? 1 : 2;
+            for (let i = 0; i < slots; i += step) {
+                const belt = getSlotPhaseBelt(i, slots, poles);
+                const endSlot = (i + span) % slots;
+
+                const a1 = (2 * Math.PI * i) / slots - Math.PI / 2;
+                const a2 = (2 * Math.PI * endSlot) / slots - Math.PI / 2;
+                const x1 = cx + Math.cos(a1) * radius;
+                const y1 = cy + Math.sin(a1) * radius;
+                const x2 = cx + Math.cos(a2) * radius;
+                const y2 = cy + Math.sin(a2) * radius;
+
+                const aMid = a1 + (2 * Math.PI * span) / (2 * slots);
+                const ctrlR = radius * 0.66;
+                const ctrlX = cx + Math.cos(aMid) * ctrlR;
+                const ctrlY = cy + Math.sin(aMid) * ctrlR;
+
+                ctx.strokeStyle = PHASE_COLORS_HEX[belt.phase];
+                ctx.globalAlpha = 0.72;
+                ctx.lineWidth = 2.4;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.quadraticCurveTo(ctrlX, ctrlY, x2, y2);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1.0;
+
+            // 4. Draw Stator Slots, Copper Fill & Phase Belt Polarity
+            const slotR = Math.max(7, Math.min(13, (Math.PI * radius) / (slots * 1.45)));
+            for (let i = 0; i < slots; i++) {
+                const angle = (2 * Math.PI * i) / slots - Math.PI / 2;
+                const x = cx + Math.cos(angle) * radius;
+                const y = cy + Math.sin(angle) * radius;
+                const belt = getSlotPhaseBelt(i, slots, poles);
+                const color = PHASE_COLORS_HEX[belt.phase];
+
+                // Slot circle
+                ctx.fillStyle = showSlotFill ? color : '#ffffff';
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(x, y, slotR, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Polarity symbol (+ / -)
+                ctx.fillStyle = showSlotFill ? '#ffffff' : color;
+                ctx.font = `bold ${Math.max(8, Math.round(slotR * 1.15))}px Inter, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(belt.sign > 0 ? '+' : '−', x, y + 0.5);
+
+                // Slot number outside ring
+                if (slots <= 48 || i % 2 === 0) {
+                    const lx = cx + Math.cos(angle) * (radius + 37);
+                    const ly = cy + Math.sin(angle) * (radius + 37);
+                    ctx.fillStyle = '#334155';
+                    ctx.font = '600 10px Inter, sans-serif';
+                    ctx.fillText(String(i + 1), lx, ly);
+                }
+            }
+
+            // 5. Phase A/B/C & Active Span Legend Box
+            draw2DLegend(ctx, w, h, activeSpan, slots, poles, windingType);
+        }
+
+        function draw2DEngineeringGrid(ctx, cx, cy, radius, w, h) {
+            ctx.save();
+
+            // Subtle Cartesian crosshair
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(0, cy); ctx.lineTo(w, cy);
+            ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
+            ctx.stroke();
+
+            // Concentric polar rings
+            [0.35, 0.7, 1.0, 1.32].forEach(mult => {
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius * mult, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+
+            // Radial degree lines every 30°
+            ctx.setLineDash([]);
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+            ctx.fillStyle = '#64748b';
+            ctx.font = '600 10px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            for (let deg = 0; deg < 360; deg += 30) {
+                const rad = ((deg - 90) * Math.PI) / 180;
+                ctx.beginPath();
+                ctx.moveTo(cx + Math.cos(rad) * radius * 0.2, cy + Math.sin(rad) * radius * 0.2);
+                ctx.lineTo(cx + Math.cos(rad) * (radius * 1.32), cy + Math.sin(rad) * (radius * 1.32));
+                ctx.stroke();
+
+                const tx = cx + Math.cos(rad) * (radius * 1.42);
+                const ty = cy + Math.sin(rad) * (radius * 1.42);
+                ctx.fillText(`${deg}°`, tx, ty);
+            }
+
+            ctx.restore();
+        }
+
+        function draw2DLegend(ctx, w, h, activeSpan, slots, poles, windingType) {
+            ctx.save();
+            const boxX = 16, boxY = h - 98, boxW = 225, boxH = 82;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.93)';
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') {
+                ctx.roundRect(boxX, boxY, boxW, boxH, 10);
+            } else {
+                ctx.rect(boxX, boxY, boxW, boxH);
+            }
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '700 11px Inter, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(`Pole-Phase Belts (${slots}S / ${poles}P, ${windingType})`, boxX + 10, boxY + 10);
+
+            ctx.font = '600 10.5px Inter, sans-serif';
+            ctx.fillStyle = '#475569';
+            ctx.fillText(`Coil Span: 1-${activeSpan.span + 1} (y=${activeSpan.span}, kw1=${activeSpan.windingFactor.toFixed(3)})`, boxX + 10, boxY + 28);
+
+            // Phase dots
+            PHASE_NAMES.forEach((name, idx) => {
+                const px = boxX + 14 + idx * 70;
+                const py = boxY + 58;
+                ctx.fillStyle = PHASE_COLORS_HEX[idx];
+                ctx.beginPath();
+                ctx.arc(px, py, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#1e293b';
+                ctx.font = '600 11px Inter, sans-serif';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`Phase ${name}`, px + 9, py);
+            });
+
+            ctx.restore();
+        }
+
+        /* =========================================================================
+           SCOPED TAB SWITCHING & VIEWER CONTROLS
+        ========================================================================= */
+        function switchControlTab(tabName, btnEl) {
+            const panel = document.getElementById('control-panel');
+            panel.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            panel.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+
+            document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+            if (btnEl) btnEl.classList.add('active');
+        }
+
+        function switchAnalysisTab(tabName, btnEl) {
+            const panel = document.getElementById('analysis-panel');
+            panel.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            panel.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+
+            document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+            if (btnEl) btnEl.classList.add('active');
+
+            if (tabName === 'charts') {
+                setTimeout(resizeAllCharts, 60);
+            }
+        }
+
+        function switch3DView() {
+            currentMode = '3d';
+            document.getElementById('threejs-container').style.display = 'block';
+            document.getElementById('twod-container').style.display = 'none';
+            document.getElementById('phaseLegend3D').style.display = 'flex';
+            document.getElementById('btn-3d').classList.add('active-view');
+            document.getElementById('btn-2d').classList.remove('active-view');
+            handleResize();
+        }
+
+        function switch2DView() {
+            currentMode = '2d';
+            document.getElementById('threejs-container').style.display = 'none';
+            document.getElementById('twod-container').style.display = 'block';
+            document.getElementById('phaseLegend3D').style.display = 'none';
+            document.getElementById('btn-3d').classList.remove('active-view');
+            document.getElementById('btn-2d').classList.add('active-view');
+            setTimeout(() => {
+                resizeCanvas2D();
+                draw2DMotor();
+            }, 50);
+        }
+
+        function toggleManualLosses() {
+            const checked = document.getElementById('useManualLosses').checked;
+            const box = document.getElementById('manualLossInputs');
+            box.classList.toggle('hidden', !checked);
+            if (!checked) {
+                ['manualStatorCopperLoss', 'manualRotorCopperLoss', 'manualIronLoss', 'manualMechanicalLoss', 'manualStrayLoss']
+                    .forEach(id => { document.getElementById(id).value = ''; });
+            }
+            calculateMotorDesign();
+        }
+
+        // Fixed resetCamera(): resets orbit controller targets directly
+        function resetCamera() {
+            orbitState.targetRotationX = 0.42;
+            orbitState.targetRotationY = 0.65;
+            orbitState.targetDistance = 175;
+            showToast('3D camera view reset.');
+        }
+
+        function toggleWireframe() {
+            wireframeEnabled = !wireframeEnabled;
+            create3DMotor();
+        }
+
+        function toggleSlotFill() {
+            showSlotFill = !showSlotFill;
+            create3DMotor();
+            if (currentMode === '2d') draw2DMotor();
+            showToast(`Slot fill visualization: ${showSlotFill ? 'ON' : 'OFF'}`);
+        }
+
+        function toggle2DGrid() {
+            show2DGrid = !show2DGrid;
+            document.getElementById('btn-2d-grid').textContent = `📏 Grid: ${show2DGrid ? 'ON' : 'OFF'}`;
+            draw2DMotor();
+        }
+
+        function reset2DView() {
+            resizeCanvas2D();
+            draw2DMotor();
+        }
+
+        function captureScreenshot() {
+            renderer.render(scene, camera);
+            const link = document.createElement('a');
+            link.download = `motor_3d_design_${Date.now()}.png`;
+            link.href = renderer.domElement.toDataURL('image/png');
+            link.click();
+            showToast('3D motor screenshot saved.');
+        }
+
+        function capture2DScreenshot() {
+            const link = document.createElement('a');
+            link.download = `motor_2d_winding_${Date.now()}.png`;
+            link.href = canvas2D.toDataURL('image/png');
+            link.click();
+            showToast('2D winding diagram saved.');
+        }
+
+        function exportResults() {
+            if (!currentResults) {
+                showToast('No calculation results available to export.');
+                return;
+            }
+            const payload = {
+                exportedAt: new Date().toISOString(),
+                standard: `${currentResults.params.standard} / ${currentResults.ieClass}`,
+                results: currentResults
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `motor_winding_analysis_${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Analysis JSON exported successfully.');
+        }
+
+        /* =========================================================================
+           CLIENT-SIDE MULTI-PAGE A4 PDF ENGINEERING REPORT GENERATOR
+           Uses jsPDF + jspdf-autotable with clean window.print() fallback
+        ========================================================================= */
+        function capture3DCanvasImage() {
+            if (!renderer || !scene || !camera) return null;
+            const prevW = renderer.domElement.width;
+            const prevH = renderer.domElement.height;
+            // Ensure non-zero backing size and fresh render before reading pixels
+            if (prevW === 0 || prevH === 0) {
+                camera.aspect = 4 / 3;
+                camera.updateProjectionMatrix();
+                renderer.setSize(800, 600, false);
+            }
+            renderer.render(scene, camera);
+            return {
+                dataUrl: renderer.domElement.toDataURL('image/png'),
+                width: renderer.domElement.width || 800,
+                height: renderer.domElement.height || 600
+            };
+        }
+
+        function capture2DCanvasImage() {
+            // Render sharp offscreen 2D diagram regardless of whether 2D tab is active
+            const offCanvas = document.createElement('canvas');
+            const w = 900, h = 680;
+            offCanvas.width = w;
+            offCanvas.height = h;
+            const offCtx = offCanvas.getContext('2d');
+            render2DMotorToContext(offCtx, w, h, true);
+            return {
+                dataUrl: offCanvas.toDataURL('image/png'),
+                width: w,
+                height: h
+            };
+        }
+
+        function compositeCanvasOnWhite(sourceCanvas) {
+            const tmp = document.createElement('canvas');
+            tmp.width = Math.max(1, sourceCanvas.width);
+            tmp.height = Math.max(1, sourceCanvas.height);
+            const tctx = tmp.getContext('2d');
+            tctx.fillStyle = '#ffffff';
+            tctx.fillRect(0, 0, tmp.width, tmp.height);
+            tctx.drawImage(sourceCanvas, 0, 0);
+            return {
+                dataUrl: tmp.toDataURL('image/png'),
+                width: tmp.width,
+                height: tmp.height
+            };
+        }
+
+        async function captureAllChartsAsImages() {
+            const chartsTab = document.getElementById('charts-tab');
+            const wasHidden = chartsTab.classList.contains('hidden');
+            const prevStyles = {
+                position: chartsTab.style.position,
+                left: chartsTab.style.left,
+                top: chartsTab.style.top,
+                width: chartsTab.style.width,
+                visibility: chartsTab.style.visibility,
+                zIndex: chartsTab.style.zIndex
+            };
+
+            // If Charts tab is hidden, reveal offscreen so Chart.js lays out real dimensions
+            if (wasHidden) {
+                chartsTab.style.position = 'fixed';
+                chartsTab.style.left = '-9999px';
+                chartsTab.style.top = '0';
+                chartsTab.style.width = '760px';
+                chartsTab.style.visibility = 'hidden';
+                chartsTab.style.zIndex = '-1';
+                chartsTab.classList.remove('hidden');
+            }
+
+            const chartKeys = ['efficiency', 'torqueSpeed', 'loss', 'current', 'harmonic', 'temperature'];
+            const savedAnimations = {};
+
+            // Disable animations and force synchronous resize + render
+            chartKeys.forEach(key => {
+                const ch = charts[key];
+                if (!ch) return;
+                savedAnimations[key] = ch.options.animation;
+                ch.options.animation = false;
+                ch.resize();
+                ch.update('none');
+            });
+
+            // Allow browser layout & canvas paint to settle
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+            const captured = {};
+            chartKeys.forEach(key => {
+                const ch = charts[key];
+                if (ch && ch.canvas && ch.canvas.width > 0 && ch.canvas.height > 0) {
+                    captured[key] = compositeCanvasOnWhite(ch.canvas);
+                } else {
+                    captured[key] = null;
+                }
+                if (ch) {
+                    ch.options.animation = savedAnimations[key];
+                }
+            });
+
+            // Restore Charts tab visibility & dimensions
+            if (wasHidden) {
+                chartsTab.classList.add('hidden');
+                Object.assign(chartsTab.style, prevStyles);
+            } else {
+                resizeAllCharts();
+            }
+
+            return captured;
+        }
+
+        function fitImageInBox(imgW, imgH, boxX, boxY, boxW, boxH) {
+            const imgAspect = imgW / Math.max(1, imgH);
+            const boxAspect = boxW / Math.max(1, boxH);
+            let drawW, drawH;
+            if (imgAspect > boxAspect) {
+                drawW = boxW;
+                drawH = boxW / imgAspect;
+            } else {
+                drawH = boxH;
+                drawW = boxH * imgAspect;
+            }
+            const drawX = boxX + (boxW - drawW) / 2;
+            const drawY = boxY + (boxH - drawH) / 2;
+            return { x: drawX, y: drawY, w: drawW, h: drawH };
+        }
+
+        function sanitizePdfText(str) {
+            // Strip emojis/non-Latin1 glyphs so jsPDF Helvetica renders crisply
+            return String(str)
+                .replace(/⭐/g, '*')
+                .replace(/⚡/g, '')
+                .replace(/🔇/g, '')
+                .replace(/✅/g, '')
+                .replace(/⚖️/g, '')
+                .replace(/🔵/g, '')
+                .replace(/−/g, '-')
+                .replace(/×/g, 'x')
+                .replace(/Ω/g, 'Ohm')
+                .replace(/Δ/g, 'Delta')
+                .replace(/[^\x20-\xFF]/g, '')
+                .trim();
+        }
+
+        async function exportPDFReport() {
+            if (!currentResults) {
+                calculateMotorDesign();
+            }
+            if (!currentResults) {
+                showToast('Unable to generate report: no calculation results.');
+                return;
+            }
+
+            // Fallback to window.print() if jsPDF or AutoTable CDN failed to load
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                showToast('PDF library unavailable offline — opening Print / Save as PDF dialog.', 4000);
+                setTimeout(() => window.print(), 300);
+                return;
+            }
+
+            const pdfBtn = document.getElementById('btn-export-pdf');
+            const origLabel = pdfBtn.innerHTML;
+            pdfBtn.disabled = true;
+            pdfBtn.innerHTML = '⏳ Generating PDF...';
+            showToast('Generating Engineering PDF Report...', 2500);
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+                if (typeof doc.autoTable !== 'function') {
+                    showToast('PDF table plugin unavailable — opening Print dialog.', 3500);
+                    setTimeout(() => window.print(), 300);
+                    return;
+                }
+
+                // Read optional Report Details with sensible defaults
+                const motorTag = sanitizePdfText(document.getElementById('reportMotorTag').value.trim() || 'MTR-IND-400V-01');
+                const engineer = sanitizePdfText(document.getElementById('reportEngineer').value.trim() || 'Lead Electrical Engineer');
+                const docNo = sanitizePdfText(document.getElementById('reportDocNo').value.trim() || 'DOC-MTR-2026-001');
+                const now = new Date();
+                const dateStr = now.toISOString().slice(0, 10);
+                const timestampStr = now.toLocaleString('en-GB', { hour12: false });
+
+                const { params, basic, activeSpan, spans, losses, slotFill, performance, designScore, ieClass } = currentResults;
+
+                // Capture visual assets reliably
+                const img3D = capture3DCanvasImage();
+                const img2D = capture2DCanvasImage();
+                const chartImgs = await captureAllChartsAsImages();
+
+                const pageW = 210;
+                const pageH = 297;
+                const margin = 12;
+                const contentW = pageW - margin * 2;
+
+                const colors = {
+                    navy: [15, 23, 42],
+                    blue: [30, 64, 175],
+                    accent: [37, 99, 235],
+                    slate: [71, 85, 105],
+                    lightBg: [248, 250, 252],
+                    border: [203, 213, 225],
+                    green: [5, 150, 105],
+                    amber: [217, 119, 6],
+                    red: [220, 38, 38]
+                };
+
+                // Helper: section title bar
+                const drawSectionHeading = (title, yPos) => {
+                    doc.setFillColor(...colors.blue);
+                    doc.rect(margin, yPos, 3, 5.5, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(10.5);
+                    doc.setTextColor(...colors.navy);
+                    doc.text(title, margin + 5.5, yPos + 4.2);
+                    doc.setDrawColor(...colors.border);
+                    doc.setLineWidth(0.3);
+                    doc.line(margin, yPos + 6.8, pageW - margin, yPos + 6.8);
+                    return yPos + 9.5;
+                };
+
+                /* =============================================================
+                   PAGE 1: EXECUTIVE SUMMARY, PARAMETERS, ELECTRICAL & LOSSES
+                ============================================================= */
+                // Title Banner
+                let y = 17;
+                doc.setFillColor(...colors.navy);
+                doc.roundedRect(margin, y, contentW, 24, 2.5, 2.5, 'F');
+                doc.setFillColor(...colors.accent);
+                doc.rect(margin, y, 4, 24, 'F');
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(14);
+                doc.setTextColor(255, 255, 255);
+                doc.text('INDUSTRIAL MOTOR WINDING DESIGN REPORT', margin + 8, y + 8.5);
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8.5);
+                doc.setTextColor(203, 213, 225);
+                doc.text(
+                    `${params.standard === 'IEC' ? 'IEC 60034' : 'NEMA MG-1'} Compliant Engineering Datasheet  |  ${params.power} kW, ${params.poles}-Pole, ${params.slots}-Slot 3-Phase Induction Motor`,
+                    margin + 8,
+                    y + 14.2
+                );
+                doc.text(
+                    `Motor Tag: ${motorTag}   |   Doc No.: ${docNo}   |   Prepared By: ${engineer}`,
+                    margin + 8,
+                    y + 19.8
+                );
+
+                // KPI Highlight Strip (2 rows x 4 cards)
+                y += 28;
+                const kpis = [
+                    { label: 'Rated Shaft Power', val: `${params.power} kW`, sub: `${(params.power * 1.341).toFixed(1)} HP` },
+                    { label: 'Supply Rating', val: `${params.voltage} V / ${params.frequency} Hz`, sub: params.connectionType === 'delta' ? 'Delta (D)' : 'Star (Y)' },
+                    { label: 'Poles / Stator Slots', val: `${params.poles}P / ${params.slots}S`, sub: `q = ${basic.slotsPerPolePerPhase.toFixed(2)}` },
+                    { label: 'Target IE Class', val: `${ieClass}`, sub: losses.meetsIE ? 'Compliant' : `Target ${losses.targetEfficiency.toFixed(1)}%` },
+                    { label: 'Frame Size', val: `${basic.frameSize}`, sub: `${params.enclosureType} / Cl.${params.insulationClass}` },
+                    { label: 'Efficiency', val: `${losses.efficiency.toFixed(2)}%`, sub: losses.isManual ? 'Measured Loss' : 'IEC Auto Loss' },
+                    { label: 'Rated Line Current', val: `${basic.lineCurrent.toFixed(1)} A`, sub: `Iph: ${basic.phaseCurrent.toFixed(1)} A` },
+                    { label: 'Winding Factor kw1', val: `${basic.windingFactor.toFixed(4)}`, sub: `Span 1-${activeSpan.span + 1} (y=${activeSpan.span})` }
+                ];
+
+                const kpiCols = 4;
+                const kpiGap = 3.5;
+                const kpiW = (contentW - kpiGap * (kpiCols - 1)) / kpiCols;
+                const kpiH = 14.5;
+
+                kpis.forEach((k, idx) => {
+                    const col = idx % kpiCols;
+                    const row = Math.floor(idx / kpiCols);
+                    const kx = margin + col * (kpiW + kpiGap);
+                    const ky = y + row * (kpiH + 3);
+
+                    doc.setFillColor(...colors.lightBg);
+                    doc.setDrawColor(...colors.border);
+                    doc.setLineWidth(0.3);
+                    doc.roundedRect(kx, ky, kpiW, kpiH, 1.8, 1.8, 'FD');
+
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(6.8);
+                    doc.setTextColor(...colors.slate);
+                    doc.text(k.label, kx + 2.5, ky + 4.2);
+
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(9.5);
+                    doc.setTextColor(...colors.blue);
+                    doc.text(k.val, kx + 2.5, ky + 9.2);
+
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(6.5);
+                    doc.setTextColor(100, 116, 139);
+                    doc.text(k.sub, kx + 2.5, ky + 12.8);
+                });
+
+                y += kpiH * 2 + 8;
+
+                // Table 1: Input & Design Parameters
+                y = drawSectionHeading('1. Input & Design Parameters', y);
+                doc.autoTable({
+                    startY: y,
+                    margin: { left: margin, right: margin },
+                    theme: 'grid',
+                    head: [['Parameter', 'Value', 'Parameter', 'Value']],
+                    body: [
+                        ['Rated Output Power', `${params.power} kW`, 'Stator Slots / Poles', `${params.slots} Slots / ${params.poles} Poles`],
+                        ['Line Voltage / Freq', `${params.voltage} V / ${params.frequency} Hz`, 'Winding Topology', `${params.windingType === 'double' ? 'Double Layer' : 'Single Layer'}, ${params.connectionType === 'delta' ? 'Delta' : 'Star (Y)'}`],
+                        ['Wire Diameter', `${params.wireDiameter.toFixed(2)} mm`, 'Turns per Coil / Parallel Paths', `${params.turnsPerCoil} Turns / a = ${params.parallelPaths}`],
+                        ['Rated Power Factor', `${params.powerFactor.toFixed(2)}`, 'Target Slot Fill Factor', `${(params.slotFillFactor * 100).toFixed(0)}%`],
+                        ['Design Standard / IE', `${params.standard} / ${ieClass}`, 'Frame / Enclosure', `${basic.frameSize} / ${params.enclosureType}`],
+                        ['Insulation Class', `Class ${params.insulationClass} (${performance.thermal.limit}°C Limit)`, 'Test / Ambient Temp', `${params.testTemperature}°C / ${params.ambientTemperature}°C`]
+                    ],
+                    styles: { fontSize: 7.8, cellPadding: 2.1, textColor: colors.navy, lineColor: colors.border, lineWidth: 0.2 },
+                    headStyles: { fillColor: colors.blue, textColor: [255, 255, 255], fontStyle: 'bold' },
+                    columnStyles: {
+                        0: { fontStyle: 'bold', fillColor: colors.lightBg, cellWidth: 42 },
+                        1: { cellWidth: 51 },
+                        2: { fontStyle: 'bold', fillColor: colors.lightBg, cellWidth: 46 },
+                        3: { cellWidth: 47 }
+                    }
+                });
+
+                y = doc.lastAutoTable.finalY + 6;
+
+                // Table 2: Electrical & Slot Fill Results
+                y = drawSectionHeading('2. Electrical Performance & Slot Fill Analysis', y);
+                doc.autoTable({
+                    startY: y,
+                    margin: { left: margin, right: margin },
+                    theme: 'grid',
+                    head: [['Metric', 'Calculated Value', 'Metric', 'Calculated Value']],
+                    body: [
+                        ['Synchronous Speed (Ns)', `${basic.synchronousSpeed.toFixed(0)} RPM`, 'Rated Speed (Nn) / Slip', `${basic.ratedSpeed.toFixed(0)} RPM (${(losses.ratedSlip * 100).toFixed(2)}%)`],
+                        ['Rated Shaft Torque (Tn)', `${basic.ratedTorque.toFixed(2)} Nm`, 'Breakdown / Locked-Rotor Torque', `${performance.torqueSpeed.breakdownTorque.toFixed(1)} Nm / ${performance.torqueSpeed.lockedRotorTorque.toFixed(1)} Nm`],
+                        ['Full-Load Line Current', `${basic.lineCurrent.toFixed(2)} A`, 'Phase Current (Iph)', `${basic.phaseCurrent.toFixed(2)} A`],
+                        [`Phase Resistance (${losses.resistance.refTemp}°C)`, `${losses.resistance.rRef.toFixed(4)} Ohm`, 'Mean Length of Turn (MLT)', `${(losses.resistance.mlt * 1000).toFixed(1)} mm`],
+                        ['Distribution / Pitch Factor', `kd1 = ${basic.distributionFactor.toFixed(4)} / kp1 = ${basic.pitchFactor.toFixed(4)}`, 'Fundamental Winding Factor', `kw1 = ${basic.windingFactor.toFixed(4)}`],
+                        ['Copper Area / Slot Area', `${slotFill.copperArea.toFixed(1)} mm2 / ${slotFill.slotArea.toFixed(1)} mm2`, 'Conductors per Slot', `${slotFill.conductorsPerSlot} (${slotFill.coilSidesPerSlot} coil side/slot)`]
+                    ],
+                    styles: { fontSize: 7.8, cellPadding: 2.1, textColor: colors.navy, lineColor: colors.border, lineWidth: 0.2 },
+                    headStyles: { fillColor: colors.blue, textColor: [255, 255, 255], fontStyle: 'bold' },
+                    columnStyles: {
+                        0: { fontStyle: 'bold', fillColor: colors.lightBg, cellWidth: 45 },
+                        1: { cellWidth: 48 },
+                        2: { fontStyle: 'bold', fillColor: colors.lightBg, cellWidth: 46 },
+                        3: { cellWidth: 47 }
+                    }
+                });
+
+                y = doc.lastAutoTable.finalY + 6;
+
+                // Table 3: 5-Part Loss Segregation
+                const lossModeLabel = losses.isManual ? 'Manual / Measured Test Input' : 'IEC 60034-2-1 Auto-Calculated';
+                y = drawSectionHeading(`3. 5-Part Loss Segregation (${lossModeLabel})`, y);
+                const totL = Math.max(1e-6, losses.total);
+                doc.autoTable({
+                    startY: y,
+                    margin: { left: margin, right: margin },
+                    theme: 'grid',
+                    head: [['Loss Component', 'Power Loss (W)', 'Share of Total Loss (%)', '% of Electrical Input']],
+                    body: [
+                        ['Stator Copper Loss (Pcu,s)', losses.statorCopper.toFixed(1), `${((losses.statorCopper / totL) * 100).toFixed(1)}%`, `${((losses.statorCopper / losses.inputPower) * 100).toFixed(2)}%`],
+                        ['Rotor Copper Loss (Pcu,r)', losses.rotorCopper.toFixed(1), `${((losses.rotorCopper / totL) * 100).toFixed(1)}%`, `${((losses.rotorCopper / losses.inputPower) * 100).toFixed(2)}%`],
+                        ['Core / Iron Loss (Pfe)', losses.iron.toFixed(1), `${((losses.iron / totL) * 100).toFixed(1)}%`, `${((losses.iron / losses.inputPower) * 100).toFixed(2)}%`],
+                        ['Mechanical & Windage Loss (Pfw)', losses.mechanical.toFixed(1), `${((losses.mechanical / totL) * 100).toFixed(1)}%`, `${((losses.mechanical / losses.inputPower) * 100).toFixed(2)}%`],
+                        ['Stray Load Loss (Pstray)', losses.stray.toFixed(1), `${((losses.stray / totL) * 100).toFixed(1)}%`, `${((losses.stray / losses.inputPower) * 100).toFixed(2)}%`],
+                        [
+                            { content: `Total Losses  |  Pin: ${(losses.inputPower / 1000).toFixed(2)} kW  ->  Pout: ${(losses.outputPower / 1000).toFixed(2)} kW`, styles: { fontStyle: 'bold', fillColor: [239, 246, 255] } },
+                            { content: `${losses.total.toFixed(1)} W`, styles: { fontStyle: 'bold', fillColor: [239, 246, 255] } },
+                            { content: '100.0%', styles: { fontStyle: 'bold', fillColor: [239, 246, 255] } },
+                            { content: `Eff: ${losses.efficiency.toFixed(2)}%`, styles: { fontStyle: 'bold', fillColor: [239, 246, 255], textColor: colors.blue } }
+                        ]
+                    ],
+                    styles: { fontSize: 7.8, cellPadding: 2.1, textColor: colors.navy, lineColor: colors.border, lineWidth: 0.2, halign: 'center' },
+                    headStyles: { fillColor: colors.blue, textColor: [255, 255, 255], fontStyle: 'bold' },
+                    columnStyles: { 0: { halign: 'left', fontStyle: 'bold' } }
+                });
+
+                /* =============================================================
+                   PAGE 2: 3D & 2D VISUALIZATIONS, COIL SPAN TABLE & SUMMARY
+                ============================================================= */
+                doc.addPage();
+                y = 18;
+                y = drawSectionHeading('4. 3D Stator/Rotor Assembly & 2D Pole-Phase Belt Winding Layout', y);
+
+                const imgBoxGap = 6;
+                const imgBoxW = (contentW - imgBoxGap) / 2;
+                const imgBoxH = 72;
+
+                // Left Box: 3D Motor Model
+                doc.setFillColor(15, 23, 42);
+                doc.setDrawColor(...colors.border);
+                doc.setLineWidth(0.35);
+                doc.roundedRect(margin, y, imgBoxW, imgBoxH, 2, 2, 'FD');
+                if (img3D) {
+                    const fit3D = fitImageInBox(img3D.width, img3D.height, margin + 1.5, y + 1.5, imgBoxW - 3, imgBoxH - 9);
+                    doc.addImage(img3D.dataUrl, 'PNG', fit3D.x, fit3D.y, fit3D.w, fit3D.h);
+                }
+                doc.setFillColor(30, 41, 59);
+                doc.rect(margin, y + imgBoxH - 7, imgBoxW, 7, 'F');
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(7.5);
+                doc.setTextColor(255, 255, 255);
+                doc.text(`3D Motor Geometry (${params.slots}S / ${params.poles}P, ${params.windingType} layer)`, margin + imgBoxW / 2, y + imgBoxH - 2.4, { align: 'center' });
+
+                // Right Box: 2D Pole-Phase Belt Diagram
+                const rightBoxX = margin + imgBoxW + imgBoxGap;
+                doc.setFillColor(248, 250, 252);
+                doc.setDrawColor(...colors.border);
+                doc.roundedRect(rightBoxX, y, imgBoxW, imgBoxH, 2, 2, 'FD');
+                if (img2D) {
+                    const fit2D = fitImageInBox(img2D.width, img2D.height, rightBoxX + 1.5, y + 1.5, imgBoxW - 3, imgBoxH - 9);
+                    doc.addImage(img2D.dataUrl, 'PNG', fit2D.x, fit2D.y, fit2D.w, fit2D.h);
+                }
+                doc.setFillColor(226, 232, 240);
+                doc.rect(rightBoxX, y + imgBoxH - 7, imgBoxW, 7, 'F');
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(7.5);
+                doc.setTextColor(...colors.navy);
+                doc.text(`2D Pole-Phase Winding (Active Span 1-${activeSpan.span + 1}, y=${activeSpan.span})`, rightBoxX + imgBoxW / 2, y + imgBoxH - 2.4, { align: 'center' });
+
+                // Phase Color Legend Strip below images
+                y += imgBoxH + 3.5;
+                doc.setFillColor(...colors.lightBg);
+                doc.setDrawColor(...colors.border);
+                doc.roundedRect(margin, y, contentW, 8, 1.5, 1.5, 'FD');
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(7.5);
+                doc.setTextColor(...colors.navy);
+                doc.text('3-Phase Color Legend (Pole-Phase Sequence: A+, C-, B+, A-, C+, B-):', margin + 3.5, y + 5.2);
+
+                const legendItems = [
+                    { name: 'Phase A', rgb: [239, 68, 68], x: margin + 106 },
+                    { name: 'Phase B', rgb: [16, 185, 129], x: margin + 132 },
+                    { name: 'Phase C', rgb: [59, 130, 246], x: margin + 158 }
+                ];
+                legendItems.forEach(item => {
+                    doc.setFillColor(...item.rgb);
+                    doc.circle(item.x, y + 4.1, 1.8, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(7.5);
+                    doc.setTextColor(...colors.navy);
+                    doc.text(item.name, item.x + 3.2, y + 5.2);
+                });
+
+                y += 13;
+
+                // Full Coil Span Comparison Table
+                y = drawSectionHeading('5. Coil Span & Winding Factor Comparison', y);
+                const fullPitchThd = Math.max(0.01, spans[spans.length - 1]?.thd || activeSpan.thd);
+                const spanRows = spans.map(sp => {
+                    const isAct = sp.span === activeSpan.span;
+                    const thdRed = Math.max(0, ((fullPitchThd - sp.thd) / fullPitchThd) * 100);
+                    const statusText = isAct
+                        ? (sp.isOptimal ? 'ACTIVE / OPTIMAL' : 'ACTIVE')
+                        : (sp.isOptimal ? 'Optimal' : sanitizePdfText(sp.recommendation));
+                    return [
+                        `1-${sp.span + 1} (y=${sp.span})`,
+                        `${sp.percentage.toFixed(1)}%`,
+                        sp.pitchFactor.toFixed(4),
+                        sp.distributionFactor.toFixed(4),
+                        sp.windingFactor.toFixed(4),
+                        `${sp.thd.toFixed(2)}% (-${thdRed.toFixed(0)}%)`,
+                        statusText
+                    ];
+                });
+
+                doc.autoTable({
+                    startY: y,
+                    margin: { left: margin, right: margin },
+                    theme: 'grid',
+                    head: [['Coil Span', 'Pitch %', 'kp1', 'kd1', 'kw1', 'MMF THD (Red.)', 'Status / Assessment']],
+                    body: spanRows,
+                    styles: { fontSize: 7.6, cellPadding: 2.2, textColor: colors.navy, lineColor: colors.border, lineWidth: 0.2, halign: 'center' },
+                    headStyles: { fillColor: colors.blue, textColor: [255, 255, 255], fontStyle: 'bold' },
+                    didParseCell: data => {
+                        if (data.section === 'body') {
+                            const sp = spans[data.row.index];
+                            if (sp && sp.span === activeSpan.span) {
+                                data.cell.styles.fillColor = [219, 234, 254];
+                                data.cell.styles.fontStyle = 'bold';
+                                data.cell.styles.textColor = colors.blue;
+                            } else if (sp && sp.isOptimal) {
+                                data.cell.styles.fillColor = [236, 253, 245];
+                            }
+                        }
+                    }
+                });
+
+                y = doc.lastAutoTable.finalY + 7;
+
+                // Optimization, Thermal & Compliance Summary
+                y = drawSectionHeading('6. Optimization, Thermal & Compliance Summary', y);
+
+                const thermalMargin = performance.thermal.margin;
+                const notes = [];
+                if (losses.meetsIE) {
+                    notes.push(`Efficiency Compliance: Calculated efficiency (${losses.efficiency.toFixed(2)}%) meets the ${ieClass} target (${losses.targetEfficiency.toFixed(1)}%).`);
+                } else {
+                    notes.push(`Efficiency Advisory: Calculated efficiency (${losses.efficiency.toFixed(2)}%) is below the ${ieClass} target (${losses.targetEfficiency.toFixed(1)}%). Consider increasing wire diameter or parallel paths to reduce stator copper loss (${losses.statorCopper.toFixed(0)} W).`);
+                }
+                notes.push(`Thermal Assessment: Estimated winding hot-spot is ${performance.thermal.temperatures[0]}°C against Class ${params.insulationClass} limit (${performance.thermal.limit}°C), providing ${thermalMargin >= 0 ? '+' : ''}${thermalMargin.toFixed(1)}°C thermal margin at ${params.ambientTemperature}°C ambient.`);
+                notes.push(`Harmonic & Torque Profile: Active coil span 1-${activeSpan.span + 1} (y=${activeSpan.span}, ${activeSpan.percentage.toFixed(1)}% pitch) yields kw1 = ${activeSpan.windingFactor.toFixed(4)}, spatial MMF THD = ${activeSpan.thd.toFixed(2)}%, and Breakdown-to-Rated Torque ratio = ${(performance.torqueSpeed.breakdownTorque / performance.torqueSpeed.ratedTorque).toFixed(2)}x.`);
+                notes.push(`Slot Manufacturability: ${params.windingType === 'double' ? 'Double-layer' : 'Single-layer'} winding with ${(slotFill.fillFactor * 100).toFixed(0)}% slot fill factor (${slotFill.conductorsPerSlot} conductors/slot, copper area ${slotFill.copperArea.toFixed(1)} mm2).`);
+
+                // Summary box
+                const boxStartY = y;
+                const summaryHeight = Math.min(pageH - 22 - boxStartY, 64);
+                doc.setFillColor(...colors.lightBg);
+                doc.setDrawColor(...colors.border);
+                doc.roundedRect(margin, boxStartY, contentW, summaryHeight, 2, 2, 'FD');
+
+                // Score badge inside box
+                const scoreRgb = designScore >= 80 ? colors.green : (designScore >= 60 ? colors.amber : colors.red);
+                doc.setFillColor(...scoreRgb);
+                doc.roundedRect(margin + 4, boxStartY + 4, 34, 15, 2, 2, 'F');
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(7);
+                doc.setTextColor(255, 255, 255);
+                doc.text('DESIGN SCORE', margin + 21, boxStartY + 9, { align: 'center' });
+                doc.setFontSize(12);
+                doc.text(`${designScore} / 100`, margin + 21, boxStartY + 15.8, { align: 'center' });
+
+                // Key metrics next to score badge
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(8.2);
+                doc.setTextColor(...colors.navy);
+                doc.text(`IE Status: ${losses.meetsIE ? `Meets ${ieClass}` : `Below ${ieClass}`}`, margin + 43, boxStartY + 9);
+                doc.text(`Thermal Margin: ${thermalMargin >= 0 ? '+' : ''}${thermalMargin.toFixed(1)}°C`, margin + 92, boxStartY + 9);
+                doc.text(`MMF THD: ${activeSpan.thd.toFixed(2)}%`, margin + 145, boxStartY + 9);
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(7.6);
+                doc.setTextColor(...colors.slate);
+                doc.text(`Core: ${performance.thermal.temperatures[1]}°C  |  Bearing: ${performance.thermal.temperatures[2]}°C  |  Frame: ${performance.thermal.temperatures[3]}°C`, margin + 43, boxStartY + 15.5);
+
+                // Engineering notes bullet list
+                let noteY = boxStartY + 24;
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(7.6);
+                doc.setTextColor(...colors.navy);
+                notes.forEach(note => {
+                    const wrapped = doc.splitTextToSize(`• ${sanitizePdfText(note)}`, contentW - 10);
+                    if (noteY + wrapped.length * 3.6 <= boxStartY + summaryHeight - 2) {
+                        doc.text(wrapped, margin + 5, noteY);
+                        noteY += wrapped.length * 3.6 + 1.5;
+                    }
+                });
+
+                /* =============================================================
+                   PAGE 3: 2x3 GRID OF ALL 6 PHYSICS-DRIVEN ANALYTICAL CHARTS
+                ============================================================= */
+                doc.addPage();
+                y = 18;
+                y = drawSectionHeading('7. Live Performance & Analytical Characteristic Curves', y);
+
+                const chartSpec = [
+                    { key: 'efficiency', title: 'Efficiency & Power Factor vs Load' },
+                    { key: 'torqueSpeed', title: 'Torque-Speed Characteristic (Kloss)' },
+                    { key: 'loss', title: '5-Part Loss Distribution (W & %)' },
+                    { key: 'current', title: 'Line Current vs Shaft Load (0%-125%)' },
+                    { key: 'harmonic', title: `Spatial MMF Harmonic Spectrum (y=${activeSpan.span})` },
+                    { key: 'temperature', title: `Thermal Profile vs Class ${params.insulationClass} Limit` }
+                ];
+
+                const gridCols = 2;
+                const gridRows = 3;
+                const gapX = 6;
+                const gapY = 5.5;
+                const availH = pageH - y - 18;
+                const cardW = (contentW - gapX) / gridCols;
+                const cardH = (availH - gapY * (gridRows - 1)) / gridRows;
+
+                chartSpec.forEach((spec, idx) => {
+                    const col = idx % gridCols;
+                    const row = Math.floor(idx / gridCols);
+                    const cx = margin + col * (cardW + gapX);
+                    const cy = y + row * (cardH + gapY);
+
+                    // Card border & header
+                    doc.setFillColor(255, 255, 255);
+                    doc.setDrawColor(...colors.border);
+                    doc.setLineWidth(0.3);
+                    doc.roundedRect(cx, cy, cardW, cardH, 2, 2, 'FD');
+
+                    doc.setFillColor(...colors.lightBg);
+                    doc.rect(cx + 0.2, cy + 0.2, cardW - 0.4, 6.5, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(7.5);
+                    doc.setTextColor(...colors.navy);
+                    doc.text(spec.title, cx + 3, cy + 4.5);
+
+                    const cap = chartImgs[spec.key];
+                    if (cap) {
+                        const fit = fitImageInBox(cap.width, cap.height, cx + 2, cy + 8, cardW - 4, cardH - 10);
+                        doc.addImage(cap.dataUrl, 'PNG', fit.x, fit.y, fit.w, fit.h);
+                    } else {
+                        doc.setFont('helvetica', 'italic');
+                        doc.setFontSize(8);
+                        doc.setTextColor(...colors.slate);
+                        doc.text('Chart snapshot unavailable', cx + cardW / 2, cy + cardH / 2, { align: 'center' });
+                    }
+                });
+
+                /* =============================================================
+                   RUNNING HEADER & FOOTER ON ALL PAGES
+                ============================================================= */
+                const totalPages = doc.getNumberOfPages();
+                for (let p = 1; p <= totalPages; p++) {
+                    doc.setPage(p);
+
+                    // Running Header
+                    doc.setDrawColor(...colors.border);
+                    doc.setLineWidth(0.3);
+                    doc.line(margin, 12.5, pageW - margin, 12.5);
+
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(8);
+                    doc.setTextColor(...colors.blue);
+                    doc.text('INDUSTRIAL MOTOR WINDING DESIGN CALCULATOR', margin, 9.5);
+
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(7.5);
+                    doc.setTextColor(...colors.slate);
+                    doc.text(`${params.standard} / ${ieClass}  |  Tag: ${motorTag}`, pageW - margin, 9.5, { align: 'right' });
+
+                    // Running Footer
+                    doc.setDrawColor(...colors.border);
+                    doc.line(margin, pageH - 13, pageW - margin, pageH - 13);
+
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(7.2);
+                    doc.setTextColor(...colors.slate);
+                    doc.text(`Generated: ${timestampStr}`, margin, pageH - 8.2);
+                    doc.text('IEC 60034 / NEMA MG-1 Engineering Datasheet', pageW / 2, pageH - 8.2, { align: 'center' });
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`Page ${p} of ${totalPages}`, pageW - margin, pageH - 8.2, { align: 'right' });
+                }
+
+                // Trigger PDF download
+                const powerTag = String(params.power).replace('.', '_');
+                const filename = `motor_design_report_${powerTag}kW_${params.poles}P_${dateStr}.pdf`;
+                doc.save(filename);
+                showToast(`PDF Report downloaded: ${filename}`, 4000);
+            } catch (err) {
+                console.error('PDF generation failed:', err);
+                showToast('PDF export encountered an error — opening Print fallback.', 4000);
+                setTimeout(() => window.print(), 400);
+            } finally {
+                pdfBtn.disabled = false;
+                pdfBtn.innerHTML = origLabel;
+            }
+        }
+
+        function resetCalculator() {
+            document.getElementById('slots').value = 36;
+            document.getElementById('poles').value = 4;
+            document.getElementById('power').value = 7.5;
+            document.getElementById('voltage').value = 400;
+            document.getElementById('frequency').value = 50;
+            document.getElementById('wireDiameter').value = 1.8;
+            document.getElementById('turnsPerCoil').value = 42;
+            document.getElementById('parallelPaths').value = 2;
+            document.getElementById('powerFactor').value = 0.87;
+            document.getElementById('windingType').value = 'double';
+            document.getElementById('slotFillFactor').value = 0.72;
+            document.getElementById('connectionType').value = 'star';
+            document.getElementById('ieClass').value = 'IE3';
+            document.getElementById('standard').value = 'IEC';
+            document.getElementById('frameSize').value = 'auto';
+            document.getElementById('insulationClass').value = 'F';
+            document.getElementById('enclosureType').value = 'IP55';
+            document.getElementById('testTemperature').value = 25;
+            document.getElementById('ambientTemperature').value = 40;
+            document.getElementById('useManualLosses').checked = false;
+            document.getElementById('manualLossInputs').classList.add('hidden');
+            ['manualStatorCopperLoss', 'manualRotorCopperLoss', 'manualIronLoss', 'manualMechanicalLoss', 'manualStrayLoss']
+                .forEach(id => { document.getElementById(id).value = ''; });
+
+            selectedSpanValue = null;
+            resetCamera();
+            calculateMotorDesign();
+            showToast('All motor parameters reset to IEC industrial defaults.');
+        }
+
+        function updateStatus(status, objectCount) {
+            document.getElementById('calculationStatus').textContent = status;
+            if (objectCount !== null) {
+                document.getElementById('objectCount').textContent = objectCount;
+            }
+        }
+
+        function handleResize() {
+            if (currentMode === '3d' && renderer && camera) {
+                const container = document.getElementById('threejs-container');
+                const w = container.clientWidth;
+                const h = container.clientHeight;
+                if (w > 0 && h > 0) {
+                    camera.aspect = w / h;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(w, h);
+                }
+            } else {
+                resizeCanvas2D();
+            }
+        }
+
+        /* =========================================================================
+           BOOT APPLICATION ON WINDOW LOAD
+        ========================================================================= */
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('load', () => {
+            init3DViewer();
+            init2DViewer();
+            initCharts();
+            calculateMotorDesign();
+            animate3D();
+        });
+    </script>
+</body>
+</html>
