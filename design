@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3-Phase Induction Motor Design Calculator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- SheetJS for real Excel/CSV parsing -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        /* Fixed CSS Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f1f5f9;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Frosted Glass Engineering Card */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.72);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.45);
+        }
+
+        /* Explicit dark styling for select & option across all browsers */
+        select,
+        select option {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+        }
+
+        select:focus,
+        input:focus {
+            outline: none;
+            border-color: #38bdf8 !important;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+        }
+
+        /* Custom sleek scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Spinner animation */
+        .spinner {
+            border: 4px solid rgba(148, 163, 184, 0.25);
+            border-top: 4px solid #38bdf8;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            animation: spin 0.85s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Fade in animation */
+        .fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="p-3 sm:p-6 lg:p-8 antialiased selection:bg-sky-500/30 selection:text-sky-200">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- Header & Toolbar -->
+        <header class="glass-card rounded-2xl p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b-2 border-sky-500/40">
+            <div class="flex items-start sm:items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-400 shrink-0">
+                    <i class="fas fa-cogs text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                        3-Phase Induction Motor Design Calculator
+                    </h1>
+                    <p class="text-sm sm:text-base text-slate-400 mt-0.5">
+                        IEC 60034-1 Derating, Output Coefficient (<span class="italic">C<sub>o</sub></span>) Scaling &amp; Winding Redesign Engine
+                    </p>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <button id="run-tests-btn" type="button" class="px-4 py-2.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/40 text-indigo-200 font-medium text-sm transition flex items-center gap-2 cursor-pointer">
+                    <i class="fas fa-vial"></i> Run Automated Tests
+                </button>
+            </div>
+        </header>
+
+        <!-- Section 1: Data Source Management -->
+        <section class="glass-card rounded-2xl p-5 sm:p-6 space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-700/80">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-semibold text-white">Reference Motor Database</h2>
+                        <p class="text-xs text-slate-400">Select built-in IEC frames, add custom motors, or import Excel/CSV sheets</p>
+                    </div>
+                </div>
+                <button id="toggle-db-btn" type="button" class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600/70 text-slate-200 text-xs sm:text-sm font-medium transition flex items-center gap-2 self-start sm:self-auto cursor-pointer">
+                    <i class="fas fa-table text-sky-400"></i>
+                    <span>View Active Motor Database (<span id="db-count-badge">8</span>)</span>
+                    <i id="toggle-db-chevron" class="fas fa-chevron-down text-xs transition-transform"></i>
+                </button>
+            </div>
+
+            <!-- Data Source Selector & Status -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+                <div>
+                    <label for="data-source" class="block text-sm font-medium text-slate-300 mb-1.5">Data Source Mode</label>
+                    <select id="data-source" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-600/80 bg-slate-800 text-slate-100 text-sm">
+                        <option value="sample">Built-in IEC Sample Database (8 Motors)</option>
+                        <option value="manual">Add Custom Motor Manually</option>
+                        <option value="upload">Upload Excel / CSV Database (.xlsx, .xls, .csv)</option>
+                    </select>
+                </div>
+
+                <!-- Upload Mode Panel -->
+                <div id="upload-section" class="hidden lg:col-span-2 bg-slate-900/60 border border-slate-700/80 rounded-xl p-4 space-y-3">
+                    <div class="flex flex-col sm:flex-row sm:items-end gap-3">
+                        <div class="flex-1">
+                            <label for="excel-file" class="block text-xs font-medium text-slate-300 mb-1.5">
+                                Choose Excel or CSV File <span class="text-slate-400">(Columns: frameSize, powerKw, voltageV, frequencyHz, poles, connection, efficiencyPct, powerFactor, innerDiameterMm, coreLengthMm, turnsPerPhase, conductorAreaMm2, noLoadCurrentA, startingTorquePct, startingCurrentPct)</span>
+                            </label>
+                            <input type="file" id="excel-file" accept=".xlsx,.xls,.csv" class="w-full text-xs text-slate-300 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-sky-500/20 file:text-sky-300 hover:file:bg-sky-500/30 bg-slate-800/80 rounded-lg border border-slate-700 p-1.5 cursor-pointer">
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button id="upload-btn" type="button" class="px-4 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer">
+                                <i class="fas fa-upload"></i> Import File
+                            </button>
+                            <button id="download-template-btn" type="button" class="px-3.5 py-2.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-100 font-medium text-xs transition flex items-center gap-1.5 cursor-pointer">
+                                <i class="fas fa-file-csv text-emerald-400"></i> Download CSV Template
+                            </button>
+                        </div>
+                    </div>
+                    <div id="upload-error" class="hidden text-xs text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg p-2.5"></div>
+                </div>
+
+                <!-- Status Bar (when not in upload mode or below) -->
+                <div id="status-wrapper" class="lg:col-span-2 flex items-center justify-between gap-3 bg-slate-900/50 border border-slate-700/70 rounded-xl px-4 py-3 mt-0 lg:mt-6">
+                    <div class="flex items-center gap-2.5 text-sm text-slate-200">
+                        <i id="data-status-icon" class="fas fa-check-circle text-emerald-400 text-base"></i>
+                        <span id="data-status-text">Sample IEC database active. 8 standard 3-phase motors loaded (0.75 kW – 15 kW).</span>
+                    </div>
+                    <button id="restore-db-btn" type="button" class="hidden shrink-0 text-xs px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition cursor-pointer">
+                        <i class="fas fa-undo mr-1"></i> Restore Defaults
+                    </button>
+                </div>
+            </div>
+
+            <!-- Manual Motor Add Form -->
+            <div id="manual-section" class="hidden bg-slate-900/60 border border-slate-700/80 rounded-xl p-4 sm:p-5 space-y-4 fade-in">
+                <div class="flex items-center justify-between border-b border-slate-700/70 pb-2.5">
+                    <h3 class="text-sm font-semibold text-sky-300 flex items-center gap-2">
+                        <i class="fas fa-plus-circle"></i> Add Custom Reference Motor to Active Database
+                    </h3>
+                    <span class="text-xs text-slate-400">All fields required &amp; validated</span>
+                </div>
+                <div id="manual-error" class="hidden text-xs text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg p-3"></div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Frame Size</label>
+                        <input id="m-frame" type="text" placeholder="e.g., 160L" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/80 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Power (kW)</label>
+                        <input id="m-power" type="number" step="0.01" min="0.1" placeholder="18.5" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/80 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Voltage (V)</label>
+                        <input id="m-voltage" type="number" step="1" min="100" value="415" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/80 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Frequency (Hz)</label>
+                        <input id="m-freq" type="number" step="0.1" min="10" value="50" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/80 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Poles</label>
+                        <select id="m-poles" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/80 text-sm text-white">
+                            <option value="2">2 Poles</option>
+                            <option value="4" selected>4 Poles</option>
+                            <option value="6">6 Poles</option>
+                            <option value="8">8 Poles</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Connection</label>
+                        <select id="m-conn" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/80 text-sm text-white">
+                            <option value="Star">Star</option>
+                            <option value="Delta" selected>Delta</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Efficiency (%)</label>
+                        <input id="m-eff" type="number" step="0.1" min="50" max="99" placeholder="91.5" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/80 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Power Factor</label>
+                        <input id="m-pf" type="number" step="0.01" min="0.4" max="0.99" placeholder="0.87" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/80 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Inner Dia D<sub>i</sub> (mm)</label>
+                        <input id="m-di" type="number" step="0.5" min="30" placeholder="190" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/80 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Core Length L (mm)</label>
+                        <input id="m-len" type="number" step="0.5" min="20" placeholder="220" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/80 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Turns / Phase</label>
+                        <input id="m-turns" type="number" step="1" min="1" placeholder="96" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/80 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Cond. Area (mm²)</label>
+                        <input id="m-area" type="number" step="0.01" min="0.1" placeholder="5.2" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/80 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">No-Load Curr. (A)</label>
+                        <input id="m-i0" type="number" step="0.1" min="0.05" placeholder="8.5" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/80 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Start Torque (%)</label>
+                        <input id="m-tst" type="number" step="1" min="50" placeholder="210" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/80 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Start Current (%)</label>
+                        <input id="m-ist" type="number" step="1" min="200" placeholder="680" class="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600/80 text-sm text-white">
+                    </div>
+                </div>
+                <div class="flex justify-end">
+                    <button id="add-manual-motor-btn" type="button" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-sm transition flex items-center gap-2 cursor-pointer">
+                        <i class="fas fa-plus"></i> Add Motor to Database
+                    </button>
+                </div>
+            </div>
+
+            <!-- Collapsible Active Motor Database Table -->
+            <div id="db-table-container" class="hidden overflow-x-auto rounded-xl border border-slate-700/80 bg-slate-900/50 fade-in">
+                <table class="w-full text-left text-xs sm:text-sm border-collapse">
+                    <thead>
+                        <tr class="bg-slate-800/90 text-slate-300 border-b border-slate-700">
+                            <th class="py-2.5 px-3 font-semibold">Frame</th>
+                            <th class="py-2.5 px-3 font-semibold">Power (kW)</th>
+                            <th class="py-2.5 px-3 font-semibold">V / Hz / P</th>
+                            <th class="py-2.5 px-3 font-semibold">Conn</th>
+                            <th class="py-2.5 px-3 font-semibold">&eta; / PF</th>
+                            <th class="py-2.5 px-3 font-semibold">D<sub>i</sub> &times; L (mm)</th>
+                            <th class="py-2.5 px-3 font-semibold">Turns</th>
+                            <th class="py-2.5 px-3 font-semibold">A<sub>c</sub> (mm²)</th>
+                            <th class="py-2.5 px-3 font-semibold">I<sub>0</sub> (A)</th>
+                            <th class="py-2.5 px-3 font-semibold">T<sub>st</sub> / I<sub>st</sub> (%)</th>
+                            <th class="py-2.5 px-3 font-semibold text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="db-table-body" class="divide-y divide-slate-800 text-slate-200"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 2: Motor Design Parameters (Batch Supported) -->
+        <section class="glass-card rounded-2xl p-5 sm:p-6 space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-700/80">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                        <i class="fas fa-sliders-h"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-semibold text-white">Motor Design Parameters</h2>
+                        <p class="text-xs text-slate-400">Configure single or multi-motor batch specifications (1 to 5 motors)</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <label for="num-motors" class="text-xs sm:text-sm font-medium text-slate-300">Motors in Batch:</label>
+                    <select id="num-motors" class="px-3 py-2 rounded-lg border border-slate-600/80 bg-slate-800 text-white text-sm font-semibold">
+                        <option value="1" selected>1 Motor</option>
+                        <option value="2">2 Motors</option>
+                        <option value="3">3 Motors</option>
+                        <option value="4">4 Motors</option>
+                        <option value="5">5 Motors</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Batch Input Tabs -->
+            <div id="batch-tabs-bar" class="hidden flex flex-wrap items-center justify-between gap-2 border-b border-slate-700/70 pb-3">
+                <div id="batch-tabs-list" class="flex flex-wrap gap-2"></div>
+                <button id="copy-motor1-btn" type="button" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600/80 text-sky-300 transition flex items-center gap-1.5 cursor-pointer">
+                    <i class="fas fa-copy"></i> Copy Motor #1 to Active Tab
+                </button>
+            </div>
+
+            <!-- Validation Error Banner -->
+            <div id="validation-banner" class="hidden bg-rose-500/15 border border-rose-500/40 text-rose-200 rounded-xl p-4 text-sm space-y-1 fade-in">
+                <div class="font-semibold flex items-center gap-2 text-rose-300">
+                    <i class="fas fa-exclamation-triangle"></i> Please correct the following validation errors:
+                </div>
+                <ul id="validation-error-list" class="list-disc list-inside text-xs sm:text-sm space-y-0.5 pl-1"></ul>
+            </div>
+
+            <!-- Dynamic Batch Form Panels Container -->
+            <div id="batch-forms-container"></div>
+
+            <!-- Form Actions -->
+            <div class="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-slate-700/80">
+                <button id="reset-btn" type="button" class="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-700/80 hover:bg-slate-600 text-slate-100 font-medium text-sm transition flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fas fa-redo"></i> Full Reset
+                </button>
+                <button id="calculate-btn" type="button" class="w-full sm:w-auto px-7 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold text-sm sm:text-base transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fas fa-bolt"></i> <span>Calculate Design</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="hidden glass-card rounded-2xl p-10 text-center space-y-4">
+            <div class="spinner mx-auto"></div>
+            <p class="text-slate-300 font-medium">Running IEC 60034-1 derating &amp; winding redesign calculations...</p>
+        </div>
+
+        <!-- Section 3: Dynamic Results Container -->
+        <section id="results-container" class="hidden glass-card rounded-2xl p-5 sm:p-6 space-y-6 fade-in">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-700/80">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-semibold text-white">Design Calculation Results</h2>
+                        <p class="text-xs text-slate-400">Computed from active reference database with nonlinear magnetic saturation &amp; thermal checks</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button id="export-btn" type="button" class="px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs sm:text-sm transition flex items-center gap-2 cursor-pointer">
+                        <i class="fas fa-file-csv"></i> Export CSV
+                    </button>
+                    <button id="new-design-btn" type="button" class="px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-100 font-medium text-xs sm:text-sm transition flex items-center gap-2 cursor-pointer">
+                        <i class="fas fa-arrow-up"></i> Modify Inputs
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dynamic Summary Cards -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="results-summary-grid"></div>
+
+            <!-- Dynamic Result Tabs -->
+            <div id="result-tabs-bar" class="flex flex-wrap gap-2 border-b border-slate-700/80 pb-3"></div>
+
+            <!-- Dynamic Result Tab Contents -->
+            <div id="result-tabs-content"></div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center text-xs text-slate-500 pb-4">
+            3-Phase Induction Motor Design Calculator &bull; IEC 60034-1 Thermal &amp; Altitude Derating &bull; First-Principles Winding Scaling
+        </footer>
+    </div>
+
+    <!-- Automated Test Runner Modal -->
+    <div id="test-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-card rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-slate-600/80 shadow-2xl fade-in">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/80 bg-slate-900/60">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-vial text-indigo-400 text-xl"></i>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Automated Engineering Verification Suite</h3>
+                        <p class="text-xs text-slate-400">Live unit tests verifying math, validation, warnings, and CSV export</p>
+                    </div>
+                </div>
+                <button id="close-test-modal" type="button" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center cursor-pointer">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="test-modal-summary" class="px-6 py-3 bg-slate-800/60 border-b border-slate-700/70 flex items-center justify-between text-sm"></div>
+            <div id="test-results-list" class="p-6 overflow-y-auto space-y-3"></div>
+            <div class="px-6 py-3.5 border-t border-slate-700/80 bg-slate-900/60 flex justify-end gap-2">
+                <button id="rerun-tests-btn" type="button" class="px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-semibold transition cursor-pointer">
+                    <i class="fas fa-sync-alt mr-1"></i> Re-Run All Tests
+                </button>
+                <button id="close-test-modal-footer" type="button" class="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold transition cursor-pointer">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* =========================================================================
+           1. DEFAULT IEC 3-PHASE INDUCTION MOTOR DATABASE (8 STANDARD MOTORS)
+           ========================================================================= */
+        const DEFAULT_MOTOR_DB = [
+            {
+                id: 'iec-71', frameSize: '71', powerKw: 0.75, voltageV: 415, frequencyHz: 50, poles: 4,
+                connection: 'Star', efficiencyPct: 79.6, powerFactor: 0.78, innerDiameterMm: 78, coreLengthMm: 65,
+                turnsPerPhase: 510, conductorAreaMm2: 0.35, noLoadCurrentA: 1.05, startingTorquePct: 210, startingCurrentPct: 580, isDefault: true
+            },
+            {
+                id: 'iec-80', frameSize: '80', powerKw: 1.5, voltageV: 415, frequencyHz: 50, poles: 4,
+                connection: 'Star', efficiencyPct: 82.8, powerFactor: 0.81, innerDiameterMm: 90, coreLengthMm: 82,
+                turnsPerPhase: 360, conductorAreaMm2: 0.68, noLoadCurrentA: 1.75, startingTorquePct: 220, startingCurrentPct: 620, isDefault: true
+            },
+            {
+                id: 'iec-90l', frameSize: '90L', powerKw: 2.2, voltageV: 415, frequencyHz: 50, poles: 4,
+                connection: 'Star', efficiencyPct: 84.3, powerFactor: 0.82, innerDiameterMm: 100, coreLengthMm: 98,
+                turnsPerPhase: 288, conductorAreaMm2: 1.02, noLoadCurrentA: 2.35, startingTorquePct: 225, startingCurrentPct: 640, isDefault: true
+            },
+            {
+                id: 'iec-100l', frameSize: '100L', powerKw: 3.7, voltageV: 415, frequencyHz: 50, poles: 4,
+                connection: 'Delta', efficiencyPct: 86.3, powerFactor: 0.84, innerDiameterMm: 112, coreLengthMm: 120,
+                turnsPerPhase: 342, conductorAreaMm2: 0.98, noLoadCurrentA: 3.40, startingTorquePct: 230, startingCurrentPct: 660, isDefault: true
+            },
+            {
+                id: 'iec-112m', frameSize: '112M', powerKw: 5.5, voltageV: 415, frequencyHz: 50, poles: 4,
+                connection: 'Delta', efficiencyPct: 87.7, powerFactor: 0.85, innerDiameterMm: 128, coreLengthMm: 135,
+                turnsPerPhase: 264, conductorAreaMm2: 1.48, noLoadCurrentA: 4.65, startingTorquePct: 235, startingCurrentPct: 680, isDefault: true
+            },
+            {
+                id: 'iec-132s', frameSize: '132S', powerKw: 7.5, voltageV: 415, frequencyHz: 50, poles: 4,
+                connection: 'Delta', efficiencyPct: 88.7, powerFactor: 0.86, innerDiameterMm: 148, coreLengthMm: 145,
+                turnsPerPhase: 210, conductorAreaMm2: 2.02, noLoadCurrentA: 5.85, startingTorquePct: 230, startingCurrentPct: 690, isDefault: true
+            },
+            {
+                id: 'iec-132m', frameSize: '132M', powerKw: 11.0, voltageV: 415, frequencyHz: 50, poles: 4,
+                connection: 'Delta', efficiencyPct: 89.8, powerFactor: 0.86, innerDiameterMm: 152, coreLengthMm: 185,
+                turnsPerPhase: 162, conductorAreaMm2: 2.95, noLoadCurrentA: 7.90, startingTorquePct: 225, startingCurrentPct: 700, isDefault: true
+            },
+            {
+                id: 'iec-160m', frameSize: '160M', powerKw: 15.0, voltageV: 415, frequencyHz: 50, poles: 4,
+                connection: 'Delta', efficiencyPct: 90.6, powerFactor: 0.87, innerDiameterMm: 176, coreLengthMm: 205,
+                turnsPerPhase: 126, conductorAreaMm2: 4.10, noLoadCurrentA: 10.2, startingTorquePct: 220, startingCurrentPct: 710, isDefault: true
+            }
+        ];
+
+        const REQUIRED_DB_COLUMNS = [
+            'frameSize', 'powerKw', 'voltageV', 'frequencyHz', 'poles',
+            'connection', 'efficiencyPct', 'powerFactor', 'innerDiameterMm',
+            'coreLengthMm', 'turnsPerPhase', 'conductorAreaMm2',
+            'noLoadCurrentA', 'startingTorquePct', 'startingCurrentPct'
+        ];
+
+        /* =========================================================================
+           2. APPLICATION STATE
+           ========================================================================= */
+        const state = {
+            motorDb: JSON.parse(JSON.stringify(DEFAULT_MOTOR_DB)),
+            numMotors: 1,
+            activeBatchTab: 0,
+            batchInputs: [],
+            lastResults: null,
+            activeResultTab: 0
+        };
+
+        function createDefaultMotorInput() {
+            return {
+                powerKw: 1.5,
+                voltageV: 415,
+                frequencyHz: 50,
+                poles: 4,
+                ambientTempC: 40,
+                insulationClass: 'F',
+                connection: 'Star',
+                altitudeM: 0,
+                fixedDimensions: false,
+                frameSize: '80'
+            };
+        }
+
+        /* =========================================================================
+           3. PURE ENGINEERING CALCULATION ENGINE (TESTABLE)
+           ========================================================================= */
+
+        /**
+         * IEC 60034-1 Altitude & Ambient Temperature Derating Factors
+         */
+        function calculateDerating(ambientTempC, altitudeM, insulationClass) {
+            // Altitude derating: 1.0 up to 1000m; above 1000m, 1% per 100m, floored at 0.60
+            let kAlt = 1.0;
+            if (altitudeM > 1000) {
+                kAlt = Math.max(0.60, 1.0 - ((altitudeM - 1000) / 100) * 0.01);
+            }
+
+            // Temperature derating rates above 40°C per Insulation Class
+            const tempRates = { B: 0.010, F: 0.0085, H: 0.0070 };
+            const rate = tempRates[insulationClass] || 0.0085;
+
+            let kTemp = 1.0;
+            if (ambientTempC > 40) {
+                kTemp = Math.max(0.55, 1.0 - (ambientTempC - 40) * rate);
+            } else if (ambientTempC < 40) {
+                // Slight uprating below 40°C, capped at 1.05
+                kTemp = Math.min(1.05, 1.0 + (40 - ambientTempC) * 0.0025);
+            }
+
+            const kTotal = kTemp * kAlt;
+            return {
+                kAlt: Number(kAlt.toFixed(4)),
+                kTemp: Number(kTemp.toFixed(4)),
+                kTotal: Number(kTotal.toFixed(4))
+            };
+        }
+
+        /**
+         * Strict Validation for a single motor design input
+         */
+        function validateMotorInput(input, db, motorLabel = 'Motor #1') {
+            const errors = [];
+            if (!db || db.length === 0) {
+                errors.push('Active motor database is empty. Please load sample data or add a motor.');
+            }
+            if (isNaN(input.powerKw) || input.powerKw <= 0 || input.powerKw > 5000) {
+                errors.push(`${motorLabel}: Output Power must be > 0 and ≤ 5000 kW.`);
+            }
+            if (isNaN(input.voltageV) || input.voltageV < 100 || input.voltageV > 11000) {
+                errors.push(`${motorLabel}: Voltage must be between 100 V and 11,000 V.`);
+            }
+            if (isNaN(input.frequencyHz) || input.frequencyHz < 10 || input.frequencyHz > 400) {
+                errors.push(`${motorLabel}: Frequency must be between 10 Hz and 400 Hz.`);
+            }
+            if (![2, 4, 6, 8].includes(Number(input.poles))) {
+                errors.push(`${motorLabel}: Poles must be 2, 4, 6, or 8.`);
+            }
+            if (isNaN(input.ambientTempC) || input.ambientTempC < -20 || input.ambientTempC > 80) {
+                errors.push(`${motorLabel}: Ambient Temperature must be between -20°C and 80°C.`);
+            }
+            if (!['B', 'F', 'H'].includes(input.insulationClass)) {
+                errors.push(`${motorLabel}: Insulation Class must be B, F, or H.`);
+            }
+            if (!['Star', 'Delta'].includes(input.connection)) {
+                errors.push(`${motorLabel}: Connection must be Star or Delta.`);
+            }
+            if (isNaN(input.altitudeM) || input.altitudeM < 0 || input.altitudeM > 5000) {
+                errors.push(`${motorLabel}: Altitude must be between 0 m and 5,000 m.`);
+            }
+            if (input.fixedDimensions) {
+                const frameTrimmed = String(input.frameSize || '').trim();
+                if (!frameTrimmed) {
+                    errors.push(`${motorLabel}: Frame Size is required when Fixed Dimensions is checked.`);
+                } else if (db && db.length > 0) {
+                    const match = db.find(m => String(m.frameSize).toLowerCase() === frameTrimmed.toLowerCase());
+                    if (!match) {
+                        errors.push(`${motorLabel}: Frame Size "${frameTrimmed}" was not found in the active motor database.`);
+                    }
+                }
+            }
+            return { valid: errors.length === 0, errors };
+        }
+
+        /**
+         * Find best matching reference motor in active database
+         */
+        function findReferenceMotor(input, pEqKw, db) {
+            if (input.fixedDimensions) {
+                const targetFrame = String(input.frameSize).trim().toLowerCase();
+                const frameMatches = db.filter(m => String(m.frameSize).toLowerCase() === targetFrame);
+                if (frameMatches.length === 0) return null;
+                // Prefer matching poles, then nearest power
+                return frameMatches.sort((a, b) => {
+                    const poleDiffA = a.poles === input.poles ? 0 : 1;
+                    const poleDiffB = b.poles === input.poles ? 0 : 1;
+                    if (poleDiffA !== poleDiffB) return poleDiffA - poleDiffB;
+                    return Math.abs(Math.log(pEqKw / a.powerKw)) - Math.abs(Math.log(pEqKw / b.powerKw));
+                })[0];
+            }
+
+            // Prefer matching poles if available
+            const samePoleMotors = db.filter(m => Number(m.poles) === Number(input.poles));
+            const pool = samePoleMotors.length > 0 ? samePoleMotors : db;
+
+            return pool.slice().sort((a, b) => {
+                return Math.abs(Math.log(pEqKw / a.powerKw)) - Math.abs(Math.log(pEqKw / b.powerKw));
+            })[0];
+        }
+
+        /**
+         * Clamp utility
+         */
+        function clamp(val, min, max) {
+            return Math.min(max, Math.max(min, val));
+        }
+
+        /**
+         * Core First-Principles Motor Redesign Calculation
+         */
+        function designSingleMotor(input, db) {
+            const derating = calculateDerating(input.ambientTempC, input.altitudeM, input.insulationClass);
+            const pEqKw = input.powerKw / derating.kTotal;
+
+            const base = findReferenceMotor(input, pEqKw, db);
+            if (!base) {
+                throw new Error('No matching reference motor found in active database.');
+            }
+
+            const warnings = [];
+            const sqrt3 = Math.sqrt(3);
+
+            // Synchronous speeds (rps & RPM)
+            const nsBaseRps = (2 * base.frequencyHz) / base.poles;
+            const nsNewRps = (2 * input.frequencyHz) / input.poles;
+            const nsNewRpm = (120 * input.frequencyHz) / input.poles;
+
+            // Apparent power (kVA)
+            const sBaseKva = base.powerKw / ((base.efficiencyPct / 100) * base.powerFactor);
+            const sEqKva = pEqKw / ((base.efficiencyPct / 100) * base.powerFactor);
+
+            // Geometry in meters
+            const diM = base.innerDiameterMm / 1000;
+            const lBaseM = base.coreLengthMm / 1000;
+
+            // Standard Output Coefficient Co (kVA / (m^3 * rps))
+            const coStd = sBaseKva / (diM * diM * lBaseM * nsBaseRps);
+            const coAdjusted = coStd * (1 / derating.kTotal);
+
+            // Core length scaling
+            let lNewMm = base.coreLengthMm;
+            if (!input.fixedDimensions) {
+                const rawLengthMm = base.coreLengthMm * (pEqKw / base.powerKw) * (base.frequencyHz / input.frequencyHz) * (input.poles / base.poles);
+                const minL = 0.7 * base.coreLengthMm;
+                const maxL = 1.4 * base.coreLengthMm;
+                lNewMm = clamp(rawLengthMm, minL, maxL);
+
+                if (rawLengthMm > maxL) {
+                    warnings.push({
+                        type: 'geometry',
+                        severity: 'warning',
+                        message: `Ideal core length (${rawLengthMm.toFixed(1)} mm) exceeded 1.4× base length; clamped to ${lNewMm.toFixed(1)} mm. Consider a larger frame.`
+                    });
+                } else if (rawLengthMm < minL) {
+                    warnings.push({
+                        type: 'geometry',
+                        severity: 'info',
+                        message: `Ideal core length (${rawLengthMm.toFixed(1)} mm) was below 0.7× base length; clamped to ${lNewMm.toFixed(1)} mm.`
+                    });
+                }
+            }
+
+            const lNewM = lNewMm / 1000;
+            const coActual = sEqKva / (diM * diM * lNewM * nsNewRps);
+
+            // Thermal overload & under-utilization checks
+            if (coActual > 1.15 * coStd) {
+                const overloadPct = ((coActual / coStd - 1) * 100).toFixed(1);
+                warnings.push({
+                    type: 'thermal',
+                    severity: 'danger',
+                    message: `Thermal Overload Warning: Actual Co (${coActual.toFixed(1)}) exceeds 115% of Standard Co (${coStd.toFixed(1)}) by +${overloadPct}%. Frame ${base.frameSize} may overheat.`
+                });
+            } else if (coActual < 0.70 * coStd) {
+                warnings.push({
+                    type: 'utilization',
+                    severity: 'info',
+                    message: `Low Frame Utilization: Actual Co (${coActual.toFixed(1)}) is below 70% of Standard Co (${coStd.toFixed(1)}). A smaller frame may be more economical.`
+                });
+            }
+
+            if (derating.kTotal < 0.999) {
+                warnings.push({
+                    type: 'derating',
+                    severity: 'warning',
+                    message: `IEC 60034-1 Derating Applied: Combined factor ${(derating.kTotal * 100).toFixed(1)}% (k_temp=${derating.kTemp.toFixed(3)}, k_alt=${derating.kAlt.toFixed(3)}). Thermal equivalent load = ${pEqKw.toFixed(2)} kW.`
+                });
+            }
+
+            // Phase voltages (Star vs Delta)
+            const vPhBase = base.connection === 'Star' ? base.voltageV / sqrt3 : base.voltageV;
+            const vPhNew = input.connection === 'Star' ? input.voltageV / sqrt3 : input.voltageV;
+
+            // Exact turns per phase (V/f & core length scaling)
+            const exactTurns = base.turnsPerPhase * (vPhNew / vPhBase) * (base.frequencyHz / input.frequencyHz) * (base.coreLengthMm / lNewMm);
+
+            // Generate 3 distinct positive integer turn options
+            const roundedCenter = Math.round(exactTurns);
+            let turnCandidates;
+            if (roundedCenter <= 1) {
+                turnCandidates = [1, 2, 3];
+            } else {
+                turnCandidates = [roundedCenter, roundedCenter - 1, roundedCenter + 1];
+            }
+
+            // Base full-load line & phase currents
+            const iLineBase = (base.powerKw * 1000) / (sqrt3 * base.voltageV * (base.efficiencyPct / 100) * base.powerFactor);
+            const iPhBase = base.connection === 'Star' ? iLineBase : iLineBase / sqrt3;
+
+            // Target full-load line & phase currents (using base eta/pf as initial estimate)
+            const iLineNewEst = (input.powerKw * 1000) / (sqrt3 * input.voltageV * (base.efficiencyPct / 100) * base.powerFactor);
+            const iPhNew = input.connection === 'Star' ? iLineNewEst : iLineNewEst / sqrt3;
+
+            // Conductor area preserving base current density
+            const conductorAreaNew = base.conductorAreaMm2 * (iPhNew / iPhBase);
+            const baseCopperArea = base.turnsPerPhase * base.conductorAreaMm2;
+
+            // Evaluate each turn option
+            const options = turnCandidates.map((turnsOpt) => {
+                const deltaTurns = turnsOpt - exactTurns;
+                const bRatio = exactTurns / turnsOpt; // Flux density ratio (B_new / B_base)
+
+                // Slot fill ratio relative to base motor
+                const slotFillRatio = (turnsOpt * conductorAreaNew) / baseCopperArea;
+                const slotFillWarning = slotFillRatio > 1.15;
+
+                // Nonlinear magnetic saturation for no-load current (I0 ~ B^2.5)
+                const noLoadCurrentNew = base.noLoadCurrentA * (input.powerKw / base.powerKw) * (base.voltageV / input.voltageV) * Math.pow(bRatio, 2.5);
+
+                // Starting torque & starting current (~ B^2)
+                const startingTorquePct = base.startingTorquePct * Math.pow(bRatio, 2);
+                const startingCurrentPct = base.startingCurrentPct * Math.pow(bRatio, 2);
+
+                // Efficiency & Power Factor adjustments
+                const fluxDeviation = Math.abs(bRatio - 1);
+                const fluxPenalty = Math.pow(fluxDeviation, 2) * 18 + (bRatio > 1 ? (bRatio - 1) * 4.5 : (1 - bRatio) * 2.5);
+                const loadPenalty = Math.max(0, (coActual / coStd - 1.05) * 6.0);
+                const scaleBonus = input.powerKw >= base.powerKw ? 0.2 : -0.2;
+                const efficiencyPct = clamp(base.efficiencyPct - fluxPenalty - loadPenalty + scaleBonus, 50.0, 97.5);
+
+                const pfFluxAdj = bRatio > 1 ? -(bRatio - 1) * 0.25 : (1 - bRatio) * 0.04;
+                const pfLoadPenalty = Math.max(0, (coActual / coStd - 1.15) * 0.08);
+                const powerFactor = clamp(base.powerFactor + pfFluxAdj - pfLoadPenalty, 0.45, 0.96);
+
+                // Composite performance score (0.00 to 1.00)
+                const fluxScore = Math.exp(-6.0 * Math.pow(bRatio - 1, 2));
+                const effScore = efficiencyPct / 100;
+                const pfScore = powerFactor;
+                const startTorqueScore = startingTorquePct >= 150
+                    ? clamp(1.0 - Math.max(0, (startingCurrentPct - 750) / 800), 0.4, 1.0)
+                    : clamp(startingTorquePct / 150, 0.2, 1.0);
+
+                let score = (0.40 * fluxScore) + (0.25 * effScore) + (0.20 * pfScore) + (0.15 * startTorqueScore);
+                if (coActual > 1.15 * coStd) score -= 0.12;
+                if (slotFillWarning) score -= 0.08;
+                score = clamp(score, 0.0, 1.0);
+
+                return {
+                    turns: turnsOpt,
+                    deltaFromExact: deltaTurns,
+                    bRatio,
+                    conductorAreaMm2: conductorAreaNew,
+                    slotFillRatio,
+                    slotFillWarning,
+                    coreLengthMm: lNewMm,
+                    fullLoadLineCurrentA: iLineNewEst,
+                    fullLoadPhaseCurrentA: iPhNew,
+                    noLoadCurrentA: noLoadCurrentNew,
+                    startingTorquePct,
+                    startingCurrentPct,
+                    efficiencyPct,
+                    powerFactor,
+                    performanceScore: score,
+                    recommended: false
+                };
+            });
+
+            // Sort options by composite performance score descending & mark best
+            options.sort((a, b) => b.performanceScore - a.performanceScore);
+            options[0].recommended = true;
+
+            if (options[0].slotFillWarning) {
+                warnings.push({
+                    type: 'slotfill',
+                    severity: 'warning',
+                    message: `Slot Fill Warning: Recommended winding copper area is ${(options[0].slotFillRatio * 100).toFixed(1)}% of base frame slot fill (>115%). Verify slot geometry.`
+                });
+            }
+
+            return {
+                input: { ...input },
+                baseMotor: { ...base },
+                derating,
+                pEqKw,
+                deratedBaseCapacityKw: base.powerKw * derating.kTotal,
+                nsNewRpm,
+                coStd,
+                coAdjusted,
+                coActual,
+                coreLengthNewMm: lNewMm,
+                exactTurns,
+                warnings,
+                options
+            };
+        }
+
+        /**
+         * RFC 4180 CSV Escaping & Export String Builder
+         */
+        function escapeCsvCell(value) {
+            const str = value === null || value === undefined ? '' : String(value);
+            if (/[",\n\r]/.test(str)) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        }
+
+        function buildResultsCsv(batchResults) {
+            const headers = [
+                'Motor #', 'Target Power (kW)', 'Voltage (V)', 'Frequency (Hz)', 'Poles', 'Sync Speed (RPM)',
+                'Connection', 'Ambient Temp (C)', 'Insulation Class', 'Altitude (m)', 'Fixed Dimensions',
+                'k_temp', 'k_alt', 'Thermal Eq Power (kW)', 'Ref Frame Size', 'Ref Power (kW)',
+                'Co Std', 'Co Actual', 'Option Rank', 'Recommended', 'Turns/Phase', 'Delta From Exact',
+                'Flux Ratio (B/B0)', 'Conductor Area (mm2)', 'Slot Fill Ratio (%)', 'Core Length (mm)',
+                'Full-Load Current (A)', 'No-Load Current (A)', 'Start Torque (%)', 'Start Current (%)',
+                'Efficiency (%)', 'Power Factor', 'Performance Score', 'Warnings'
+            ];
+
+            const rows = [headers.map(escapeCsvCell).join(',')];
+
+            batchResults.motors.forEach((m, idx) => {
+                const warningText = m.warnings.map(w => w.message).join(' | ') || 'None';
+                m.options.forEach((opt, optIdx) => {
+                    const row = [
+                        `Motor #${idx + 1}`,
+                        m.input.powerKw,
+                        m.input.voltageV,
+                        m.input.frequencyHz,
+                        m.input.poles,
+                        m.nsNewRpm.toFixed(0),
+                        m.input.connection,
+                        m.input.ambientTempC,
+                        m.input.insulationClass,
+                        m.input.altitudeM,
+                        m.input.fixedDimensions ? 'Yes' : 'No',
+                        m.derating.kTemp.toFixed(3),
+                        m.derating.kAlt.toFixed(3),
+                        m.pEqKw.toFixed(2),
+                        m.baseMotor.frameSize,
+                        m.baseMotor.powerKw,
+                        m.coStd.toFixed(2),
+                        m.coActual.toFixed(2),
+                        `Option ${optIdx + 1}`,
+                        opt.recommended ? 'Yes' : 'No',
+                        opt.turns,
+                        opt.deltaFromExact.toFixed(2),
+                        opt.bRatio.toFixed(3),
+                        opt.conductorAreaMm2.toFixed(3),
+                        (opt.slotFillRatio * 100).toFixed(1),
+                        opt.coreLengthMm.toFixed(1),
+                        opt.fullLoadLineCurrentA.toFixed(2),
+                        opt.noLoadCurrentA.toFixed(2),
+                        opt.startingTorquePct.toFixed(1),
+                        opt.startingCurrentPct.toFixed(1),
+                        opt.efficiencyPct.toFixed(2),
+                        opt.powerFactor.toFixed(3),
+                        opt.performanceScore.toFixed(3),
+                        warningText
+                    ];
+                    rows.push(row.map(escapeCsvCell).join(','));
+                });
+            });
+
+            return rows.join('\n');
+        }
+
+        /* =========================================================================
+           4. UI HELPERS & TOAST NOTIFICATIONS (NO alert() OR confirm())
+           ========================================================================= */
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const colors = {
+                success: 'bg-emerald-900/95 border-emerald-500/60 text-emerald-100',
+                error: 'bg-rose-900/95 border-rose-500/60 text-rose-100',
+                warning: 'bg-amber-900/95 border-amber-500/60 text-amber-100',
+                info: 'bg-slate-800/95 border-sky-500/60 text-sky-100'
+            };
+            const icons = {
+                success: 'fa-check-circle text-emerald-400',
+                error: 'fa-times-circle text-rose-400',
+                warning: 'fa-exclamation-triangle text-amber-400',
+                info: 'fa-info-circle text-sky-400'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-xl border shadow-xl text-sm fade-in ${colors[type] || colors.info}`;
+            toast.innerHTML = `
+                <i class="fas ${icons[type] || icons.info} mt-0.5"></i>
+                <span class="flex-1">${escapeHtml(message)}</span>
+                <button type="button" class="text-slate-400 hover:text-white cursor-pointer" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                if (toast.parentElement) toast.remove();
+            }, 4500);
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        /* =========================================================================
+           5. DATABASE TABLE & FRAME SELECTOR RENDERING
+           ========================================================================= */
+        function renderDatabaseTable() {
+            const tbody = document.getElementById('db-table-body');
+            const countBadge = document.getElementById('db-count-badge');
+            const restoreBtn = document.getElementById('restore-db-btn');
+
+            countBadge.textContent = state.motorDb.length;
+            const hasChanges = state.motorDb.length !== DEFAULT_MOTOR_DB.length || state.motorDb.some(m => !m.isDefault);
+            restoreBtn.classList.toggle('hidden', !hasChanges);
+
+            if (state.motorDb.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" class="py-6 text-center text-slate-400">No motors in active database. Add a motor or restore defaults.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = state.motorDb.map((m) => `
+                <tr class="hover:bg-slate-800/60 transition">
+                    <td class="py-2.5 px-3 font-semibold text-sky-300">
+                        ${escapeHtml(m.frameSize)}
+                        ${m.isDefault ? '' : '<span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Custom</span>'}
+                    </td>
+                    <td class="py-2.5 px-3 font-medium">${m.powerKw}</td>
+                    <td class="py-2.5 px-3 text-slate-300">${m.voltageV}V / ${m.frequencyHz}Hz / ${m.poles}P</td>
+                    <td class="py-2.5 px-3">${escapeHtml(m.connection)}</td>
+                    <td class="py-2.5 px-3">${m.efficiencyPct}% / ${m.powerFactor}</td>
+                    <td class="py-2.5 px-3">${m.innerDiameterMm} &times; ${m.coreLengthMm}</td>
+                    <td class="py-2.5 px-3">${m.turnsPerPhase}</td>
+                    <td class="py-2.5 px-3">${m.conductorAreaMm2}</td>
+                    <td class="py-2.5 px-3">${m.noLoadCurrentA}</td>
+                    <td class="py-2.5 px-3">${m.startingTorquePct}% / ${m.startingCurrentPct}%</td>
+                    <td class="py-2.5 px-3 text-right">
+                        ${m.isDefault
+                            ? '<span class="text-xs text-slate-500">Built-in</span>'
+                            : `<button type="button" data-delete-id="${escapeHtml(m.id)}" class="delete-motor-btn text-xs px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition cursor-pointer"><i class="fas fa-trash-alt"></i></button>`
+                        }
+                    </td>
+                </tr>
+            `).join('');
+
+            // Attach delete handlers
+            document.querySelectorAll('.delete-motor-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.getAttribute('data-delete-id');
+                    state.motorDb = state.motorDb.filter(m => m.id !== id);
+                    renderDatabaseTable();
+                    renderBatchForms();
+                    updateDataStatus();
+                    showToast('Custom motor removed from active database.', 'info');
+                });
+            });
+        }
+
+        function updateDataStatus() {
+            const statusText = document.getElementById('data-status-text');
+            const statusIcon = document.getElementById('data-status-icon');
+            const customCount = state.motorDb.filter(m => !m.isDefault).length;
+
+            if (state.motorDb.length === 0) {
+                statusIcon.className = 'fas fa-exclamation-triangle text-rose-400 text-base';
+                statusText.textContent = 'Database is empty. Restore defaults or add motors.';
+            } else {
+                statusIcon.className = 'fas fa-check-circle text-emerald-400 text-base';
+                statusText.textContent = `Active database ready: ${state.motorDb.length} standard motor(s) loaded${customCount > 0 ? ` (${customCount} custom)` : ''}.`;
+            }
+        }
+
+        /* =========================================================================
+           6. MULTI-MOTOR BATCH INPUT RENDERING & SYNCHRONIZATION
+           ========================================================================= */
+        function ensureBatchInputsLength(count) {
+            while (state.batchInputs.length < count) {
+                const clone = state.batchInputs.length > 0
+                    ? { ...state.batchInputs[0] }
+                    : createDefaultMotorInput();
+                state.batchInputs.push(clone);
+            }
+            if (state.batchInputs.length > count) {
+                state.batchInputs = state.batchInputs.slice(0, count);
+            }
+            if (state.activeBatchTab >= count) {
+                state.activeBatchTab = count - 1;
+            }
+        }
+
+        function renderBatchForms() {
+            ensureBatchInputsLength(state.numMotors);
+
+            const tabsBar = document.getElementById('batch-tabs-bar');
+            const tabsList = document.getElementById('batch-tabs-list');
+            const formsContainer = document.getElementById('batch-forms-container');
+
+            // Show tabs bar when batch > 1
+            tabsBar.classList.toggle('hidden', state.numMotors <= 1);
+
+            tabsList.innerHTML = state.batchInputs.map((m, idx) => {
+                const active = idx === state.activeBatchTab;
+                return `
+                    <button type="button" data-batch-tab="${idx}" class="batch-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer ${
+                        active
+                            ? 'bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20'
+                            : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                    }">
+                        Motor #${idx + 1} <span class="opacity-75 font-normal">(${m.powerKw} kW)</span>
+                    </button>
+                `;
+            }).join('');
+
+            // Unique frame options from active database
+            const uniqueFrames = [...new Set(state.motorDb.map(m => m.frameSize))];
+
+            const activeInput = state.batchInputs[state.activeBatchTab];
+            const idx = state.activeBatchTab;
+
+            formsContainer.innerHTML = `
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 fade-in">
+                    <div>
+                        <label for="in-power" class="block text-xs font-medium text-slate-300 mb-1.5">Output Power (kW) *</label>
+                        <input id="in-power" type="number" step="0.05" min="0.05" max="5000" value="${activeInput.powerKw}"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-600/80 bg-slate-900/70 text-white text-sm">
+                    </div>
+                    <div>
+                        <label for="in-voltage" class="block text-xs font-medium text-slate-300 mb-1.5">Line Voltage (V) *</label>
+                        <input id="in-voltage" type="number" step="1" min="100" max="11000" value="${activeInput.voltageV}"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-600/80 bg-slate-900/70 text-white text-sm">
+                    </div>
+                    <div>
+                        <label for="in-frequency" class="block text-xs font-medium text-slate-300 mb-1.5">Frequency (Hz) *</label>
+                        <input id="in-frequency" type="number" step="0.1" min="10" max="400" value="${activeInput.frequencyHz}"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-600/80 bg-slate-900/70 text-white text-sm">
+                    </div>
+                    <div>
+                        <label for="in-poles" class="block text-xs font-medium text-slate-300 mb-1.5">Number of Poles *</label>
+                        <select id="in-poles" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-600/80 bg-slate-800 text-white text-sm">
+                            ${[2, 4, 6, 8].map(p => `<option value="${p}" ${Number(activeInput.poles) === p ? 'selected' : ''}>${p} Poles (${Math.round(120 * (activeInput.frequencyHz || 50) / p)} RPM)</option>`).join('')}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="in-ambient" class="block text-xs font-medium text-slate-300 mb-1.5">Ambient Temp (°C) <span class="text-slate-500">(-20 to 80)</span></label>
+                        <input id="in-ambient" type="number" step="1" min="-20" max="80" value="${activeInput.ambientTempC}"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-600/80 bg-slate-900/70 text-white text-sm">
+                    </div>
+                    <div>
+                        <label for="in-insulation" class="block text-xs font-medium text-slate-300 mb-1.5">Insulation Class</label>
+                        <select id="in-insulation" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-600/80 bg-slate-800 text-white text-sm">
+                            <option value="B" ${activeInput.insulationClass === 'B' ? 'selected' : ''}>Class B (130°C max)</option>
+                            <option value="F" ${activeInput.insulationClass === 'F' ? 'selected' : ''}>Class F (155°C max)</option>
+                            <option value="H" ${activeInput.insulationClass === 'H' ? 'selected' : ''}>Class H (180°C max)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="in-connection" class="block text-xs font-medium text-slate-300 mb-1.5">Stator Connection</label>
+                        <select id="in-connection" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-600/80 bg-slate-800 text-white text-sm">
+                            <option value="Star" ${activeInput.connection === 'Star' ? 'selected' : ''}>Star (Y)</option>
+                            <option value="Delta" ${activeInput.connection === 'Delta' ? 'selected' : ''}>Delta (Δ)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="in-altitude" class="block text-xs font-medium text-slate-300 mb-1.5">Altitude (m) <span class="text-slate-500">(0 to 5000)</span></label>
+                        <input id="in-altitude" type="number" step="50" min="0" max="5000" value="${activeInput.altitudeM}"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-600/80 bg-slate-900/70 text-white text-sm">
+                    </div>
+
+                    <div class="sm:col-span-2 lg:col-span-4 bg-slate-900/50 border border-slate-700/70 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                        <label class="inline-flex items-center gap-2.5 cursor-pointer select-none">
+                            <input id="in-fixed-dim" type="checkbox" ${activeInput.fixedDimensions ? 'checked' : ''}
+                                class="w-4 h-4 rounded accent-sky-500 cursor-pointer">
+                            <span class="text-sm font-medium text-slate-200">Fixed Frame Dimensions</span>
+                            <span class="text-xs text-slate-400">(Hold core length constant &amp; force specific frame)</span>
+                        </label>
+                        <div id="frame-picker-wrapper" class="${activeInput.fixedDimensions ? '' : 'hidden'} flex-1 max-w-xs">
+                            <select id="in-frame-size" class="w-full px-3 py-2 rounded-lg border border-slate-600/80 bg-slate-800 text-white text-sm">
+                                <option value="">-- Select Frame Size --</option>
+                                ${uniqueFrames.map(f => `<option value="${escapeHtml(f)}" ${activeInput.frameSize === f ? 'selected' : ''}>IEC Frame ${escapeHtml(f)}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Bind tab switching
+            document.querySelectorAll('.batch-tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    syncActiveBatchFormToState();
+                    state.activeBatchTab = Number(btn.getAttribute('data-batch-tab'));
+                    renderBatchForms();
+                });
+            });
+
+            // Bind live state updates
+            const bindInput = (id, key, parser = v => v) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('input', () => {
+                    state.batchInputs[idx][key] = parser(el.value);
+                    if (key === 'powerKw') {
+                        const tabBtn = document.querySelector(`[data-batch-tab="${idx}"] span`);
+                        if (tabBtn) tabBtn.textContent = `(${el.value || 0} kW)`;
+                    }
+                });
+                el.addEventListener('change', () => {
+                    state.batchInputs[idx][key] = parser(el.value);
+                    if (key === 'frequencyHz') renderBatchForms(); // update RPM labels
+                });
+            };
+
+            bindInput('in-power', 'powerKw', Number);
+            bindInput('in-voltage', 'voltageV', Number);
+            bindInput('in-frequency', 'frequencyHz', Number);
+            bindInput('in-poles', 'poles', Number);
+            bindInput('in-ambient', 'ambientTempC', Number);
+            bindInput('in-insulation', 'insulationClass', String);
+            bindInput('in-connection', 'connection', String);
+            bindInput('in-altitude', 'altitudeM', v => v === '' ? 0 : Number(v));
+            bindInput('in-frame-size', 'frameSize', String);
+
+            const fixedCb = document.getElementById('in-fixed-dim');
+            const frameWrapper = document.getElementById('frame-picker-wrapper');
+            fixedCb.addEventListener('change', () => {
+                state.batchInputs[idx].fixedDimensions = fixedCb.checked;
+                frameWrapper.classList.toggle('hidden', !fixedCb.checked);
+            });
+        }
+
+        function syncActiveBatchFormToState() {
+            const idx = state.activeBatchTab;
+            if (!state.batchInputs[idx]) return;
+            const getVal = id => document.getElementById(id)?.value;
+            if (!document.getElementById('in-power')) return;
+
+            state.batchInputs[idx] = {
+                powerKw: Number(getVal('in-power')),
+                voltageV: Number(getVal('in-voltage')),
+                frequencyHz: Number(getVal('in-frequency')),
+                poles: Number(getVal('in-poles')),
+                ambientTempC: Number(getVal('in-ambient')),
+                insulationClass: String(getVal('in-insulation')),
+                connection: String(getVal('in-connection')),
+                altitudeM: getVal('in-altitude') === '' ? 0 : Number(getVal('in-altitude')),
+                fixedDimensions: Boolean(document.getElementById('in-fixed-dim')?.checked),
+                frameSize: String(getVal('in-frame-size') || '')
+            };
+        }
+
+        /* =========================================================================
+           7. RESULTS RENDERING
+           ========================================================================= */
+        function renderResults(batchResults) {
+            const container = document.getElementById('results-container');
+            const summaryGrid = document.getElementById('results-summary-grid');
+            const tabsBar = document.getElementById('result-tabs-bar');
+            const tabsContent = document.getElementById('result-tabs-content');
+
+            const totalMotors = batchResults.motors.length;
+            const avgScore = batchResults.motors.reduce((acc, m) => acc + m.options[0].performanceScore, 0) / totalMotors;
+            const bestEff = Math.max(...batchResults.motors.map(m => m.options[0].efficiencyPct));
+
+            summaryGrid.innerHTML = `
+                <div class="bg-slate-900/60 border border-slate-700/80 rounded-xl p-4">
+                    <div class="text-xs text-slate-400 uppercase tracking-wider">Motors Designed</div>
+                    <div class="text-2xl font-bold text-white mt-1">${totalMotors}</div>
+                </div>
+                <div class="bg-slate-900/60 border border-slate-700/80 rounded-xl p-4">
+                    <div class="text-xs text-slate-400 uppercase tracking-wider">Avg Top Score</div>
+                    <div class="text-2xl font-bold text-sky-400 mt-1">${avgScore.toFixed(2)} <span class="text-xs font-normal text-slate-400">/ 1.00</span></div>
+                </div>
+                <div class="bg-slate-900/60 border border-slate-700/80 rounded-xl p-4">
+                    <div class="text-xs text-slate-400 uppercase tracking-wider">Best Efficiency</div>
+                    <div class="text-2xl font-bold text-emerald-400 mt-1">${bestEff.toFixed(1)}%</div>
+                </div>
+                <div class="bg-slate-900/60 border border-slate-700/80 rounded-xl p-4">
+                    <div class="text-xs text-slate-400 uppercase tracking-wider">Calculation Time</div>
+                    <div class="text-2xl font-bold text-indigo-300 mt-1">${batchResults.calcTimeMs.toFixed(2)} <span class="text-xs font-normal text-slate-400">ms</span></div>
+                </div>
+            `;
+
+            tabsBar.innerHTML = batchResults.motors.map((m, idx) => {
+                const active = idx === state.activeResultTab;
+                const hasDanger = m.warnings.some(w => w.severity === 'danger');
+                return `
+                    <button type="button" data-res-tab="${idx}" class="res-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-2 cursor-pointer ${
+                        active
+                            ? 'bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20'
+                            : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                    }">
+                        <span>Motor #${idx + 1} (${m.input.powerKw} kW, Frame ${escapeHtml(m.baseMotor.frameSize)})</span>
+                        ${hasDanger ? '<i class="fas fa-exclamation-triangle text-rose-500" title="Thermal Warning"></i>' : ''}
+                    </button>
+                `;
+            }).join('');
+
+            const m = batchResults.motors[state.activeResultTab] || batchResults.motors[0];
+
+            const warningsHtml = m.warnings.length > 0 ? `
+                <div class="space-y-2">
+                    ${m.warnings.map(w => {
+                        const cls = w.severity === 'danger'
+                            ? 'bg-rose-500/15 border-rose-500/40 text-rose-200'
+                            : w.severity === 'warning'
+                                ? 'bg-amber-500/15 border-amber-500/40 text-amber-200'
+                                : 'bg-sky-500/15 border-sky-500/40 text-sky-200';
+                        const icon = w.severity === 'danger'
+                            ? 'fa-fire text-rose-400'
+                            : w.severity === 'warning'
+                                ? 'fa-exclamation-triangle text-amber-400'
+                                : 'fa-info-circle text-sky-400';
+                        return `
+                            <div class="flex items-start gap-2.5 px-4 py-3 rounded-xl border text-xs sm:text-sm ${cls}">
+                                <i class="fas ${icon} mt-0.5 shrink-0"></i>
+                                <span>${escapeHtml(w.message)}</span>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            ` : '';
+
+            tabsContent.innerHTML = `
+                <div class="space-y-6 fade-in">
+                    ${warningsHtml}
+
+                    <!-- Reference & Design Constants -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-slate-900/50 border border-slate-700/80 rounded-xl p-4 space-y-2">
+                            <h3 class="text-sm font-semibold text-sky-400 border-b border-slate-700/70 pb-2">
+                                <i class="fas fa-bolt mr-1.5"></i> Target Specification
+                            </h3>
+                            ${resultRow('Output Power', `${m.input.powerKw} kW`)}
+                            ${resultRow('Voltage / Freq', `${m.input.voltageV} V / ${m.input.frequencyHz} Hz`)}
+                            ${resultRow('Poles / Sync Speed', `${m.input.poles}P (${m.nsNewRpm.toFixed(0)} RPM)`)}
+                            ${resultRow('Connection / Class', `${m.input.connection} / Class ${m.input.insulationClass}`)}
+                            ${resultRow('Ambient / Altitude', `${m.input.ambientTempC}°C / ${m.input.altitudeM} m`)}
+                        </div>
+
+                        <div class="bg-slate-900/50 border border-slate-700/80 rounded-xl p-4 space-y-2">
+                            <h3 class="text-sm font-semibold text-sky-400 border-b border-slate-700/70 pb-2">
+                                <i class="fas fa-cube mr-1.5"></i> Matched Reference Motor
+                            </h3>
+                            ${resultRow('IEC Frame Size', m.baseMotor.frameSize)}
+                            ${resultRow('Base Rating', `${m.baseMotor.powerKw} kW, ${m.baseMotor.voltageV} V, ${m.baseMotor.connection}`)}
+                            ${resultRow('Inner Dia / Base L', `${m.baseMotor.innerDiameterMm} mm / ${m.baseMotor.coreLengthMm} mm`)}
+                            ${resultRow('Base Turns / Area', `${m.baseMotor.turnsPerPhase} / ${m.baseMotor.conductorAreaMm2} mm²`)}
+                            ${resultRow('Base Eff / PF', `${m.baseMotor.efficiencyPct}% / ${m.baseMotor.powerFactor}`)}
+                        </div>
+
+                        <div class="bg-slate-900/50 border border-slate-700/80 rounded-xl p-4 space-y-2">
+                            <h3 class="text-sm font-semibold text-sky-400 border-b border-slate-700/70 pb-2">
+                                <i class="fas fa-balance-scale mr-1.5"></i> Derating &amp; Co Scaling
+                            </h3>
+                            ${resultRow('k_temp / k_alt', `${m.derating.kTemp.toFixed(3)} / ${m.derating.kAlt.toFixed(3)}`)}
+                            ${resultRow('Thermal Eq. Power', `${m.pEqKw.toFixed(2)} kW`)}
+                            ${resultRow('Derated Base Frame', `${m.deratedBaseCapacityKw.toFixed(2)} kW`)}
+                            ${resultRow('Co Std / Actual', `${m.coStd.toFixed(1)} / ${m.coActual.toFixed(1)}`)}
+                            ${resultRow('Exact Turns / New L', `${m.exactTurns.toFixed(2)} / ${m.coreLengthNewMm.toFixed(1)} mm`)}
+                        </div>
+                    </div>
+
+                    <!-- 3 Winding Design Options -->
+                    <div>
+                        <h3 class="text-base font-semibold text-white mb-3 flex items-center gap-2">
+                            <i class="fas fa-sliders-h text-emerald-400"></i> Winding Redesign Options (Ranked by Performance Score)
+                        </h3>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            ${m.options.map((opt, idx) => `
+                                <div class="rounded-xl p-5 space-y-2 border transition ${
+                                    opt.recommended
+                                        ? 'bg-emerald-500/10 border-emerald-400/60 shadow-lg shadow-emerald-500/10'
+                                        : 'bg-slate-900/50 border-slate-700/80'
+                                }">
+                                    <div class="flex items-center justify-between pb-2.5 border-b ${opt.recommended ? 'border-emerald-500/30' : 'border-slate-700/70'}">
+                                        <h4 class="font-bold text-base ${opt.recommended ? 'text-emerald-300' : 'text-sky-300'}">
+                                            Option ${idx + 1} ${opt.recommended ? '(Recommended)' : ''}
+                                        </h4>
+                                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold ${
+                                            opt.recommended ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-200'
+                                        }">
+                                            Score: ${opt.performanceScore.toFixed(2)}
+                                        </span>
+                                    </div>
+                                    ${resultRow('Turns per Phase', `<strong>${opt.turns}</strong>`)}
+                                    ${resultRow('Δ from Exact Turns', `${opt.deltaFromExact >= 0 ? '+' : ''}${opt.deltaFromExact.toFixed(2)}`)}
+                                    ${resultRow('Flux Density Ratio (B/B₀)', opt.bRatio.toFixed(3))}
+                                    ${resultRow('Conductor Area', `${opt.conductorAreaMm2.toFixed(3)} mm²`)}
+                                    ${resultRow('Rel. Slot Fill', `<span class="${opt.slotFillWarning ? 'text-amber-400 font-semibold' : ''}">${(opt.slotFillRatio * 100).toFixed(1)}% ${opt.slotFillWarning ? '⚠' : ''}</span>`)}
+                                    ${resultRow('Core Length', `${opt.coreLengthMm.toFixed(1)} mm`)}
+                                    ${resultRow('Full-Load Line Current', `${opt.fullLoadLineCurrentA.toFixed(2)} A`)}
+                                    ${resultRow('No-Load Current (I₀)', `${opt.noLoadCurrentA.toFixed(2)} A`)}
+                                    ${resultRow('Starting Torque', `${opt.startingTorquePct.toFixed(1)}%`)}
+                                    ${resultRow('Starting Current', `${opt.startingCurrentPct.toFixed(1)}%`)}
+                                    ${resultRow('Est. Efficiency', `<span class="text-emerald-300 font-semibold">${opt.efficiencyPct.toFixed(2)}%</span>`)}
+                                    ${resultRow('Est. Power Factor', opt.powerFactor.toFixed(3))}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Bind result tab clicks
+            document.querySelectorAll('.res-tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    state.activeResultTab = Number(btn.getAttribute('data-res-tab'));
+                    renderResults(batchResults);
+                });
+            });
+
+            container.classList.remove('hidden');
+        }
+
+        function resultRow(label, valueHtml) {
+            return `
+                <div class="flex items-center justify-between text-xs sm:text-sm py-1 border-b border-slate-800/70 last:border-b-0">
+                    <span class="text-slate-400">${label}</span>
+                    <span class="text-slate-100 font-medium text-right">${valueHtml}</span>
+                </div>
+            `;
+        }
+
+        /* =========================================================================
+           8. AUTOMATED UNIT TEST SUITE (5 TESTS)
+           ========================================================================= */
+        function runAutomatedTestSuite() {
+            const results = [];
+
+            function record(name, passed, details) {
+                results.push({ name, passed, details });
+            }
+
+            // TEST 1: Star-to-Delta Phase Turns Scaling (sqrt(3) verification)
+            try {
+                const starBase = DEFAULT_MOTOR_DB.find(m => m.frameSize === '80'); // 1.5 kW, 415V, 50Hz, 4P, Star, 360 turns
+                const deltaInput = {
+                    powerKw: 1.5, voltageV: 415, frequencyHz: 50, poles: 4,
+                    ambientTempC: 40, insulationClass: 'F', connection: 'Delta',
+                    altitudeM: 0, fixedDimensions: true, frameSize: '80'
+                };
+                const res = designSingleMotor(deltaInput, DEFAULT_MOTOR_DB);
+                const ratio = res.exactTurns / starBase.turnsPerPhase;
+                const expected = Math.sqrt(3);
+                const diff = Math.abs(ratio - expected);
+                const passed = diff < 1e-4;
+                record(
+                    '1. Star-to-Delta Phase Turns Scaling (√3 Verification)',
+                    passed,
+                    `Base Star Turns = ${starBase.turnsPerPhase}, Delta Exact Turns = ${res.exactTurns.toFixed(3)}, Ratio = ${ratio.toFixed(5)} (Expected √3 ≈ ${expected.toFixed(5)}, Δ = ${diff.toExponential(2)})`
+                );
+            } catch (e) {
+                record('1. Star-to-Delta Phase Turns Scaling (√3 Verification)', false, `Exception: ${e.message}`);
+            }
+
+            // TEST 2: IEC 60034-1 Altitude & Ambient Temperature Derating Math
+            try {
+                const d1 = calculateDerating(50, 2000, 'B'); // 50°C Class B -> 0.90; 2000m -> 0.90; total -> 0.81
+                const d2 = calculateDerating(40, 1000, 'F'); // 40°C & 1000m -> 1.00, 1.00, 1.00
+                const passed = Math.abs(d1.kAlt - 0.90) < 1e-4
+                    && Math.abs(d1.kTemp - 0.90) < 1e-4
+                    && Math.abs(d1.kTotal - 0.81) < 1e-4
+                    && d2.kTotal === 1.0;
+                record(
+                    '2. IEC 60034-1 Altitude & Ambient Temperature Derating',
+                    passed,
+                    `50°C / 2000m / Class B => k_temp=${d1.kTemp}, k_alt=${d1.kAlt}, k_total=${d1.kTotal} (Expected 0.90, 0.90, 0.81); 40°C / 1000m => k_total=${d2.kTotal}`
+                );
+            } catch (e) {
+                record('2. IEC 60034-1 Altitude & Ambient Temperature Derating', false, `Exception: ${e.message}`);
+            }
+
+            // TEST 3: Invalid Input Rejection
+            try {
+                const vNegPower = validateMotorInput({ ...createDefaultMotorInput(), powerKw: -2.5 }, DEFAULT_MOTOR_DB);
+                const vZeroVolt = validateMotorInput({ ...createDefaultMotorInput(), voltageV: 0 }, DEFAULT_MOTOR_DB);
+                const vHighAlt = validateMotorInput({ ...createDefaultMotorInput(), altitudeM: 6500 }, DEFAULT_MOTOR_DB);
+                const vMissingFrame = validateMotorInput({ ...createDefaultMotorInput(), fixedDimensions: true, frameSize: '' }, DEFAULT_MOTOR_DB);
+                const passed = !vNegPower.valid && !vZeroVolt.valid && !vHighAlt.valid && !vMissingFrame.valid;
+                record(
+                    '3. Strict Invalid Input Rejection',
+                    passed,
+                    `Rejected negative power (${!vNegPower.valid}), zero voltage (${!vZeroVolt.valid}), 6500m altitude (${!vHighAlt.valid}), missing fixed frame (${!vMissingFrame.valid}).`
+                );
+            } catch (e) {
+                record('3. Strict Invalid Input Rejection', false, `Exception: ${e.message}`);
+            }
+
+            // TEST 4: Fixed-Dimension Thermal Overload Warning Trigger
+            try {
+                const overloadInput = {
+                    powerKw: 5.5, voltageV: 415, frequencyHz: 50, poles: 4,
+                    ambientTempC: 45, insulationClass: 'B', connection: 'Delta',
+                    altitudeM: 1200, fixedDimensions: true, frameSize: '71'
+                };
+                const res = designSingleMotor(overloadInput, DEFAULT_MOTOR_DB);
+                const hasThermalWarning = res.warnings.some(w => w.type === 'thermal');
+                const passed = hasThermalWarning && res.coActual > 1.15 * res.coStd;
+                record(
+                    '4. Fixed-Dimension Thermal Overload Warning Trigger',
+                    passed,
+                    `5.5 kW forced into Frame 71 => Co_actual=${res.coActual.toFixed(1)} vs 1.15×Co_std=${(1.15 * res.coStd).toFixed(1)}, Thermal Warning Fired = ${hasThermalWarning}`
+                );
+            } catch (e) {
+                record('4. Fixed-Dimension Thermal Overload Warning Trigger', false, `Exception: ${e.message}`);
+            }
+
+            // TEST 5: CSV Export String Generation & Escaping
+            try {
+                const sampleRes = designSingleMotor(createDefaultMotorInput(), DEFAULT_MOTOR_DB);
+                // Inject a warning with comma and quotes to verify RFC 4180 escaping
+                sampleRes.warnings.push({ type: 'test', severity: 'info', message: 'Check "slot", fill' });
+                const csv = buildResultsCsv({ motors: [sampleRes], calcTimeMs: 1.2 });
+                const lines = csv.split('\n');
+                const escapedProperly = csv.includes('"Check ""slot"", fill"');
+                const passed = lines.length === 4 && lines[0].startsWith('Motor #,Target Power (kW)') && escapedProperly;
+                record(
+                    '5. CSV Export Generation & RFC 4180 Escaping',
+                    passed,
+                    `Generated ${lines.length} CSV lines (1 header + 3 option rows), Header verified = ${lines[0].startsWith('Motor #')}, Quotes/Comma Escaping = ${escapedProperly}`
+                );
+            } catch (e) {
+                record('5. CSV Export Generation & RFC 4180 Escaping', false, `Exception: ${e.message}`);
+            }
+
+            return results;
+        }
+
+        function renderTestModal() {
+            const modal = document.getElementById('test-modal');
+            const summaryEl = document.getElementById('test-modal-summary');
+            const listEl = document.getElementById('test-results-list');
+
+            const results = runAutomatedTestSuite();
+            const passCount = results.filter(r => r.passed).length;
+            const allPassed = passCount === results.length;
+
+            summaryEl.innerHTML = `
+                <span class="font-semibold text-slate-200">Executed ${results.length} Automated Tests</span>
+                <span class="px-3 py-1 rounded-full text-xs font-bold ${allPassed ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'}">
+                    ${passCount} / ${results.length} PASSED
+                </span>
+            `;
+
+            listEl.innerHTML = results.map(r => `
+                <div class="rounded-xl p-4 border ${r.passed ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-rose-500/10 border-rose-500/30'}">
+                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                        <span class="font-semibold text-sm text-white">${escapeHtml(r.name)}</span>
+                        <span class="px-2.5 py-0.5 rounded-md text-xs font-bold ${r.passed ? 'bg-emerald-500 text-slate-950' : 'bg-rose-500 text-white'}">
+                            ${r.passed ? 'PASS' : 'FAIL'}
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-300 font-mono leading-relaxed">${escapeHtml(r.details)}</p>
+                </div>
+            `).join('');
+
+            modal.classList.remove('hidden');
+        }
+
+        /* =========================================================================
+           9. EVENT LISTENERS & INITIALIZATION
+           ========================================================================= */
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize state & UI
+            state.batchInputs = [createDefaultMotorInput()];
+            renderDatabaseTable();
+            updateDataStatus();
+            renderBatchForms();
+
+            // Toggle Active Database Table
+            document.getElementById('toggle-db-btn').addEventListener('click', () => {
+                const container = document.getElementById('db-table-container');
+                const chevron = document.getElementById('toggle-db-chevron');
+                container.classList.toggle('hidden');
+                chevron.classList.toggle('rotate-180');
+            });
+
+            // Restore Default Database
+            document.getElementById('restore-db-btn').addEventListener('click', () => {
+                state.motorDb = JSON.parse(JSON.stringify(DEFAULT_MOTOR_DB));
+                renderDatabaseTable();
+                updateDataStatus();
+                renderBatchForms();
+                showToast('Restored built-in 8 IEC standard motors.', 'success');
+            });
+
+            // Data Source Mode Switch
+            const dataSourceSelect = document.getElementById('data-source');
+            const uploadSection = document.getElementById('upload-section');
+            const manualSection = document.getElementById('manual-section');
+            const statusWrapper = document.getElementById('status-wrapper');
+
+            dataSourceSelect.addEventListener('change', () => {
+                const mode = dataSourceSelect.value;
+                uploadSection.classList.toggle('hidden', mode !== 'upload');
+                manualSection.classList.toggle('hidden', mode !== 'manual');
+                statusWrapper.classList.toggle('hidden', mode === 'upload');
+            });
+
+            // Download Sample CSV Template
+            document.getElementById('download-template-btn').addEventListener('click', () => {
+                const header = REQUIRED_DB_COLUMNS.join(',');
+                const rows = DEFAULT_MOTOR_DB.slice(0, 3).map(m =>
+                    REQUIRED_DB_COLUMNS.map(col => escapeCsvCell(m[col])).join(',')
+                );
+                const csvContent = [header, ...rows].join('\n');
+                triggerDownload(csvContent, 'iec_motor_database_template.csv', 'text/csv;charset=utf-8;');
+                showToast('Downloaded sample CSV template.', 'success');
+            });
+
+            // SheetJS Excel / CSV Upload
+            document.getElementById('upload-btn').addEventListener('click', () => {
+                const fileInput = document.getElementById('excel-file');
+                const errorBox = document.getElementById('upload-error');
+                errorBox.classList.add('hidden');
+
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    errorBox.textContent = 'Please select an .xlsx, .xls, or .csv file first.';
+                    errorBox.classList.remove('hidden');
+                    return;
+                }
+
+                if (typeof XLSX === 'undefined') {
+                    errorBox.textContent = 'SheetJS library failed to load. Check your internet connection.';
+                    errorBox.classList.remove('hidden');
+                    return;
+                }
+
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonRows = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+                        if (!jsonRows || jsonRows.length === 0) {
+                            throw new Error('The uploaded file contains no data rows.');
+                        }
+
+                        const fileCols = Object.keys(jsonRows[0]);
+                        const missingCols = REQUIRED_DB_COLUMNS.filter(c => !fileCols.includes(c));
+                        if (missingCols.length > 0) {
+                            throw new Error(`Missing required column(s): ${missingCols.join(', ')}`);
+                        }
+
+                        const importedMotors = [];
+                        jsonRows.forEach((row, i) => {
+                            const m = {
+                                id: `imp-${Date.now()}-${i}`,
+                                frameSize: String(row.frameSize).trim(),
+                                powerKw: Number(row.powerKw),
+                                voltageV: Number(row.voltageV),
+                                frequencyHz: Number(row.frequencyHz),
+                                poles: Number(row.poles),
+                                connection: String(row.connection).trim(),
+                                efficiencyPct: Number(row.efficiencyPct),
+                                powerFactor: Number(row.powerFactor),
+                                innerDiameterMm: Number(row.innerDiameterMm),
+                                coreLengthMm: Number(row.coreLengthMm),
+                                turnsPerPhase: Number(row.turnsPerPhase),
+                                conductorAreaMm2: Number(row.conductorAreaMm2),
+                                noLoadCurrentA: Number(row.noLoadCurrentA),
+                                startingTorquePct: Number(row.startingTorquePct),
+                                startingCurrentPct: Number(row.startingCurrentPct),
+                                isDefault: false
+                            };
+                            if (!m.frameSize || isNaN(m.powerKw) || m.powerKw <= 0 || isNaN(m.turnsPerPhase) || m.turnsPerPhase <= 0) {
+                                throw new Error(`Row ${i + 2} has invalid numeric or frameSize values.`);
+                            }
+                            if (!['Star', 'Delta'].includes(m.connection)) {
+                                throw new Error(`Row ${i + 2}: connection must be "Star" or "Delta".`);
+                            }
+                            importedMotors.push(m);
+                        });
+
+                        state.motorDb = [...state.motorDb, ...importedMotors];
+                        renderDatabaseTable();
+                        updateDataStatus();
+                        renderBatchForms();
+                        fileInput.value = '';
+                        showToast(`Imported ${importedMotors.length} motor(s) into active database.`, 'success');
+                    } catch (err) {
+                        errorBox.textContent = `Import failed: ${err.message}`;
+                        errorBox.classList.remove('hidden');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+
+            // Add Custom Motor Manually
+            document.getElementById('add-manual-motor-btn').addEventListener('click', () => {
+                const errEl = document.getElementById('manual-error');
+                errEl.classList.add('hidden');
+
+                const m = {
+                    id: `custom-${Date.now()}`,
+                    frameSize: document.getElementById('m-frame').value.trim(),
+                    powerKw: Number(document.getElementById('m-power').value),
+                    voltageV: Number(document.getElementById('m-voltage').value),
+                    frequencyHz: Number(document.getElementById('m-freq').value),
+                    poles: Number(document.getElementById('m-poles').value),
+                    connection: document.getElementById('m-conn').value,
+                    efficiencyPct: Number(document.getElementById('m-eff').value),
+                    powerFactor: Number(document.getElementById('m-pf').value),
+                    innerDiameterMm: Number(document.getElementById('m-di').value),
+                    coreLengthMm: Number(document.getElementById('m-len').value),
+                    turnsPerPhase: Number(document.getElementById('m-turns').value),
+                    conductorAreaMm2: Number(document.getElementById('m-area').value),
+                    noLoadCurrentA: Number(document.getElementById('m-i0').value),
+                    startingTorquePct: Number(document.getElementById('m-tst').value),
+                    startingCurrentPct: Number(document.getElementById('m-ist').value),
+                    isDefault: false
+                };
+
+                const errs = [];
+                if (!m.frameSize) errs.push('Frame Size is required.');
+                if (isNaN(m.powerKw) || m.powerKw <= 0) errs.push('Power must be > 0.');
+                if (isNaN(m.voltageV) || m.voltageV < 100) errs.push('Voltage must be ≥ 100 V.');
+                if (isNaN(m.frequencyHz) || m.frequencyHz < 10) errs.push('Frequency must be ≥ 10 Hz.');
+                if (isNaN(m.efficiencyPct) || m.efficiencyPct < 50 || m.efficiencyPct > 99) errs.push('Efficiency must be 50–99%.');
+                if (isNaN(m.powerFactor) || m.powerFactor < 0.4 || m.powerFactor > 0.99) errs.push('Power Factor must be 0.40–0.99.');
+                if (isNaN(m.innerDiameterMm) || m.innerDiameterMm <= 0) errs.push('Inner Diameter must be > 0.');
+                if (isNaN(m.coreLengthMm) || m.coreLengthMm <= 0) errs.push('Core Length must be > 0.');
+                if (isNaN(m.turnsPerPhase) || m.turnsPerPhase < 1) errs.push('Turns/Phase must be ≥ 1.');
+                if (isNaN(m.conductorAreaMm2) || m.conductorAreaMm2 <= 0) errs.push('Conductor Area must be > 0.');
+                if (isNaN(m.noLoadCurrentA) || m.noLoadCurrentA <= 0) errs.push('No-Load Current must be > 0.');
+                if (isNaN(m.startingTorquePct) || m.startingTorquePct <= 0) errs.push('Starting Torque must be > 0.');
+                if (isNaN(m.startingCurrentPct) || m.startingCurrentPct <= 0) errs.push('Starting Current must be > 0.');
+
+                if (errs.length > 0) {
+                    errEl.textContent = errs.join(' ');
+                    errEl.classList.remove('hidden');
+                    return;
+                }
+
+                state.motorDb.push(m);
+                renderDatabaseTable();
+                updateDataStatus();
+                renderBatchForms();
+                showToast(`Added custom motor (Frame ${m.frameSize}, ${m.powerKw} kW) to database.`, 'success');
+            });
+
+            // Number of Motors in Batch
+            document.getElementById('num-motors').addEventListener('change', (e) => {
+                syncActiveBatchFormToState();
+                state.numMotors = clamp(Number(e.target.value), 1, 5);
+                renderBatchForms();
+            });
+
+            // Copy Motor #1 to Active Tab
+            document.getElementById('copy-motor1-btn').addEventListener('click', () => {
+                if (state.activeBatchTab === 0) {
+                    showToast('Already on Motor #1.', 'info');
+                    return;
+                }
+                state.batchInputs[state.activeBatchTab] = { ...state.batchInputs[0] };
+                renderBatchForms();
+                showToast(`Copied Motor #1 parameters to Motor #${state.activeBatchTab + 1}.`, 'success');
+            });
+
+            // Calculate Design Button
+            const calcBtn = document.getElementById('calculate-btn');
+            calcBtn.addEventListener('click', () => {
+                syncActiveBatchFormToState();
+
+                const valBanner = document.getElementById('validation-banner');
+                const valList = document.getElementById('validation-error-list');
+                valBanner.classList.add('hidden');
+                valList.innerHTML = '';
+
+                const allErrors = [];
+                state.batchInputs.forEach((inp, idx) => {
+                    const check = validateMotorInput(inp, state.motorDb, `Motor #${idx + 1}`);
+                    if (!check.valid) allErrors.push(...check.errors);
+                });
+
+                if (allErrors.length > 0) {
+                    valList.innerHTML = allErrors.map(err => `<li>${escapeHtml(err)}</li>`).join('');
+                    valBanner.classList.remove('hidden');
+                    valBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+
+                // Disable button & show loading
+                calcBtn.disabled = true;
+                const loadingEl = document.getElementById('loading');
+                const resultsEl = document.getElementById('results-container');
+                resultsEl.classList.add('hidden');
+                loadingEl.classList.remove('hidden');
+
+                setTimeout(() => {
+                    try {
+                        const t0 = performance.now();
+                        const motors = state.batchInputs.map(inp => designSingleMotor(inp, state.motorDb));
+                        const calcTimeMs = Math.max(0.05, performance.now() - t0);
+
+                        state.lastResults = { motors, calcTimeMs };
+                        state.activeResultTab = 0;
+
+                        loadingEl.classList.add('hidden');
+                        renderResults(state.lastResults);
+                        resultsEl.scrollIntoView({ behavior: 'smooth' });
+                        showToast(`Successfully calculated ${motors.length} motor design(s).`, 'success');
+                    } catch (err) {
+                        loadingEl.classList.add('hidden');
+                        showToast(`Calculation error: ${err.message}`, 'error');
+                    } finally {
+                        calcBtn.disabled = false;
+                    }
+                }, 260);
+            });
+
+            // Full Reset Button
+            document.getElementById('reset-btn').addEventListener('click', () => {
+                state.numMotors = 1;
+                state.activeBatchTab = 0;
+                state.batchInputs = [createDefaultMotorInput()];
+                state.lastResults = null;
+
+                document.getElementById('num-motors').value = '1';
+                document.getElementById('validation-banner').classList.add('hidden');
+                document.getElementById('results-container').classList.add('hidden');
+                renderBatchForms();
+                showToast('All design inputs and results have been reset.', 'info');
+            });
+
+            // Modify Inputs / Scroll Top
+            document.getElementById('new-design-btn').addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            // Real CSV Export Button
+            document.getElementById('export-btn').addEventListener('click', () => {
+                if (!state.lastResults) {
+                    showToast('No calculation results available to export.', 'warning');
+                    return;
+                }
+                const csvString = buildResultsCsv(state.lastResults);
+                triggerDownload(csvString, 'motor_design_results.csv', 'text/csv;charset=utf-8;');
+                showToast('Exported motor_design_results.csv', 'success');
+            });
+
+            // Automated Test Modal Controls
+            document.getElementById('run-tests-btn').addEventListener('click', renderTestModal);
+            document.getElementById('rerun-tests-btn').addEventListener('click', renderTestModal);
+            const closeModal = () => document.getElementById('test-modal').classList.add('hidden');
+            document.getElementById('close-test-modal').addEventListener('click', closeModal);
+            document.getElementById('close-test-modal-footer').addEventListener('click', closeModal);
+            document.getElementById('test-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'test-modal') closeModal();
+            });
+        });
+
+        function triggerDownload(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
