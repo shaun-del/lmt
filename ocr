@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DocuScan OCR — PDF to Excel &amp; PDF Extractor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .drop-zone-active {
+      border-color: #4f46e5 !important;
+      background-color: #eef2ff !important;
+    }
+    .cell-input:focus {
+      outline: 2px solid #6366f1;
+      outline-offset: -2px;
+      background-color: #ffffff;
+    }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .toast-enter {
+      animation: fadeSlideIn 0.2s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased">
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+          <i data-lucide="scan-text" class="w-5 h-5"></i>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 truncate">DocuScan OCR</h1>
+          <p class="text-xs text-slate-500 hidden sm:block">Extract PDF data with OCR and export to Excel or PDF</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <span class="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+          Runs Locally in Browser
+        </span>
+        <button id="openGuideBtn" type="button" class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-700 hover:text-indigo-700 bg-slate-100 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 px-3 py-2 rounded-lg transition">
+          <i data-lucide="file-code-2" class="w-4 h-4"></i>
+          <span>Notepad Setup</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+    <!-- Step 1: Upload & OCR Configuration -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">1</span>
+          <h2 class="text-base font-semibold text-slate-900">Upload PDF &amp; Run OCR</h2>
+        </div>
+        <button id="loadSampleBtn" type="button" class="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+          Load Sample Extracted Data
+        </button>
+      </div>
+
+      <!-- Drop Zone -->
+      <div id="dropZone" role="button" tabindex="0" aria-label="Upload PDF or image file" class="border-2 border-dashed border-slate-300 hover:border-indigo-400 bg-slate-50/70 rounded-xl p-6 sm:p-8 text-center cursor-pointer transition">
+        <input id="fileInput" type="file" accept=".pdf,application/pdf,image/png,image/jpeg,image/webp" class="hidden" />
+        <div class="mx-auto w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
+          <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+        </div>
+        <p class="text-sm sm:text-base font-semibold text-slate-800">Drop your PDF here, or click to browse</p>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">Supports scanned &amp; digital PDFs (plus PNG/JPG images). Processed privately on your device.</p>
+
+        <div id="selectedFileBadge" class="hidden mt-4 inline-flex items-center gap-2 bg-white border border-indigo-200 text-indigo-800 text-xs sm:text-sm font-medium px-3.5 py-2 rounded-lg shadow-sm max-w-full">
+          <i data-lucide="file-text" class="w-4 h-4 shrink-0 text-indigo-600"></i>
+          <span id="selectedFileName" class="truncate max-w-[220px] sm:max-w-md"></span>
+          <span id="selectedFileSize" class="text-xs text-slate-500 shrink-0"></span>
+        </div>
+      </div>
+
+      <!-- Controls Row -->
+      <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+        <div>
+          <label for="ocrModeSelect" class="block text-xs font-medium text-slate-600 mb-1.5">Extraction Mode</label>
+          <select id="ocrModeSelect" class="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="hybrid">Smart Auto (Text + OCR fallback)</option>
+            <option value="force_ocr">Force Full OCR (Every Page)</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="ocrLangSelect" class="block text-xs font-medium text-slate-600 mb-1.5">OCR Language</label>
+          <select id="ocrLangSelect" class="w-full text-sm bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="eng">English (eng)</option>
+            <option value="tam">Tamil (tam)</option>
+            <option value="hin">Hindi (hin)</option>
+            <option value="spa">Spanish (spa)</option>
+            <option value="fra">French (fra)</option>
+            <option value="deu">German (deu)</option>
+          </select>
+        </div>
+
+        <button id="extractBtn" type="button" disabled class="w-full inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold text-sm px-4 py-2.5 rounded-lg shadow-sm transition">
+          <i data-lucide="scan-line" class="w-4 h-4"></i>
+          <span>Extract Data</span>
+        </button>
+
+        <button id="clearBtn" type="button" class="w-full inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-medium text-sm px-4 py-2.5 rounded-lg transition">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          <span>Reset</span>
+        </button>
+      </div>
+
+      <!-- Progress Panel -->
+      <div id="progressPanel" class="hidden mt-5 bg-indigo-50/70 border border-indigo-200 rounded-xl p-4">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <span id="progressStatus" class="text-xs sm:text-sm font-semibold text-indigo-900 truncate">Initializing OCR engine...</span>
+              <span id="progressPercent" class="text-xs font-bold text-indigo-700 shrink-0">0%</span>
+            </div>
+            <div class="w-full bg-indigo-200/70 rounded-full h-2.5 overflow-hidden">
+              <div id="progressBar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-200" style="width: 0%"></div>
+            </div>
+            <div class="mt-2 flex items-center justify-between gap-2">
+              <span id="progressDetail" class="text-xs text-indigo-700">Preparing PDF pages...</span>
+              <button id="cancelOcrBtn" type="button" class="text-xs font-semibold text-rose-600 hover:text-rose-800 underline">Cancel</button>
+            </div>
+          </div>
+          <div id="previewCanvasWrap" class="hidden shrink-0 w-24 h-32 bg-white border border-indigo-200 rounded-lg overflow-hidden shadow-sm flex items-center justify-center">
+            <canvas id="pagePreviewCanvas" class="max-w-full max-h-full object-contain"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 2: Two Export Options -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">2</span>
+          <h2 class="text-base font-semibold text-slate-900">Choose Export Format</h2>
+        </div>
+        <span id="exportReadyBadge" class="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+          Upload a PDF or load sample data to export
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Option 1: Excel -->
+        <div class="border border-emerald-200 bg-emerald-50/40 rounded-xl p-4 flex flex-col justify-between gap-4">
+          <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+              <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">Option 1: Export as Excel (.xlsx)</h3>
+              <p class="text-xs text-slate-600 mt-1">Downloads a multi-sheet Excel workbook containing your structured data table plus a full raw-text sheet.</p>
+            </div>
+          </div>
+          <button id="exportExcelBtn" type="button" disabled class="w-full inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold text-sm px-4 py-2.5 rounded-lg shadow-sm transition">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>Download Excel (.xlsx)</span>
+          </button>
+        </div>
+
+        <!-- Option 2: PDF -->
+        <div class="border border-rose-200 bg-rose-50/40 rounded-xl p-4 flex flex-col justify-between gap-4">
+          <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0">
+              <i data-lucide="file-text" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">Option 2: Export as PDF (.pdf)</h3>
+              <p class="text-xs text-slate-600 mt-1">Downloads a clean, formatted PDF report with styled tables, metadata header, and extracted text summary.</p>
+            </div>
+          </div>
+          <button id="exportPdfBtn" type="button" disabled class="w-full inline-flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold text-sm px-4 py-2.5 rounded-lg shadow-sm transition">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>Download PDF (.pdf)</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 3: Extracted Data Preview & Editor -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-5 sm:p-6 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">3</span>
+          <h2 class="text-base font-semibold text-slate-900">Review &amp; Edit Extracted Data</h2>
+        </div>
+
+        <!-- View Tabs -->
+        <div class="inline-flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+          <button id="tabTableBtn" type="button" class="px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-md bg-white text-indigo-700 shadow-sm transition">
+            Structured Table
+          </button>
+          <button id="tabRawBtn" type="button" class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md text-slate-600 hover:text-slate-900 transition">
+            Raw Text
+          </button>
+        </div>
+      </div>
+
+      <!-- Summary Stats Strip -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-200 bg-slate-50 border-b border-slate-200 text-center">
+        <div class="p-3">
+          <p class="text-xs text-slate-500">Pages Processed</p>
+          <p id="statPages" class="text-base font-bold text-slate-900 mt-0.5">0</p>
+        </div>
+        <div class="p-3">
+          <p class="text-xs text-slate-500">Table Rows</p>
+          <p id="statRows" class="text-base font-bold text-slate-900 mt-0.5">0</p>
+        </div>
+        <div class="p-3">
+          <p class="text-xs text-slate-500">Words Extracted</p>
+          <p id="statWords" class="text-base font-bold text-slate-900 mt-0.5">0</p>
+        </div>
+        <div class="p-3">
+          <p class="text-xs text-slate-500">Extraction Method</p>
+          <p id="statMethod" class="text-base font-bold text-indigo-700 mt-0.5">—</p>
+        </div>
+      </div>
+
+      <!-- Structured Table View -->
+      <div id="tableView" class="p-5 sm:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <label for="parseModeSelect" class="text-xs font-medium text-slate-600">Table Parsing:</label>
+            <select id="parseModeSelect" class="text-xs sm:text-sm bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="auto">Auto-Detect Columns</option>
+              <option value="kv">Key : Value Pairs</option>
+              <option value="lines">One Line per Row</option>
+            </select>
+          </div>
+          <button id="addRowBtn" type="button" class="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg transition">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            Add Row
+          </button>
+        </div>
+
+        <div id="tableEmptyState" class="py-12 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+          <i data-lucide="table-2" class="w-8 h-8 text-slate-400 mx-auto mb-2"></i>
+          <p class="text-sm font-medium text-slate-600">No data extracted yet</p>
+          <p class="text-xs text-slate-500 mt-1">Upload a PDF above and click <strong>Extract Data</strong>, or click <strong>Load Sample Extracted Data</strong> to try exports right away.</p>
+        </div>
+
+        <div id="tableContainer" class="hidden overflow-x-auto border border-slate-200 rounded-xl">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead id="tableHead" class="bg-slate-100 text-slate-700 text-xs uppercase tracking-wider border-b border-slate-200"></thead>
+            <tbody id="tableBody" class="divide-y divide-slate-200 bg-white"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Raw Text View -->
+      <div id="rawView" class="hidden p-5 sm:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <p class="text-xs text-slate-500">Edit extracted text below and click <strong>Sync to Table</strong> to update your spreadsheet rows.</p>
+          <div class="flex items-center gap-2">
+            <button id="syncTextBtn" type="button" class="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg transition">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              Sync to Table
+            </button>
+            <button id="copyTextBtn" type="button" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 rounded-lg transition">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              Copy Text
+            </button>
+          </div>
+        </div>
+        <textarea id="rawTextArea" rows="12" placeholder="Extracted OCR text will appear here..." class="w-full font-mono text-xs sm:text-sm bg-slate-50 border border-slate-300 rounded-xl p-4 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+      </div>
+    </section>
+  </main>
+
+  <!-- Notepad Local Setup Modal -->
+  <div id="notepadModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-lg w-full p-6 relative">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <div class="flex items-center gap-2">
+          <i data-lucide="file-code-2" class="w-5 h-5 text-indigo-600"></i>
+          <h3 class="text-base font-bold text-slate-900">How to Run Locally (Notepad Method)</h3>
+        </div>
+        <button id="closeGuideBtn" type="button" aria-label="Close modal" class="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <ol class="space-y-2.5 text-sm text-slate-700 list-decimal list-inside">
+        <li>Download this HTML file (or copy its entire source code into <strong>Notepad</strong>).</li>
+        <li>Click <strong>File &rarr; Save As</strong>, set <em>Save as type</em> to <strong>All Files (*.*)</strong>, and name it <code class="bg-slate-100 px-1.5 py-0.5 rounded text-indigo-700 font-mono text-xs">ocr-app.html</code>.</li>
+        <li>Double-click <code class="bg-slate-100 px-1.5 py-0.5 rounded text-indigo-700 font-mono text-xs">ocr-app.html</code> to open it in Chrome, Edge, or Firefox.</li>
+        <li>Keep an active internet connection on first run so the browser can load PDF.js, Tesseract.js, SheetJS, and jsPDF from CDN.</li>
+      </ol>
+      <div class="mt-5 flex justify-end">
+        <button id="closeGuideFooterBtn" type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+          Got it
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // Configure PDF.js worker if available
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      }
+
+      // Application State
+      const state = {
+        file: null,
+        sourceName: '',
+        pages: [],
+        rawText: '',
+        headers: [],
+        rows: [],
+        isProcessing: false,
+        cancelRequested: false,
+        activeTab: 'table'
+      };
+
+      // DOM References
+      const els = {
+        dropZone: document.getElementById('dropZone'),
+        fileInput: document.getElementById('fileInput'),
+        selectedFileBadge: document.getElementById('selectedFileBadge'),
+        selectedFileName: document.getElementById('selectedFileName'),
+        selectedFileSize: document.getElementById('selectedFileSize'),
+        ocrModeSelect: document.getElementById('ocrModeSelect'),
+        ocrLangSelect: document.getElementById('ocrLangSelect'),
+        extractBtn: document.getElementById('extractBtn'),
+        clearBtn: document.getElementById('clearBtn'),
+        loadSampleBtn: document.getElementById('loadSampleBtn'),
+        progressPanel: document.getElementById('progressPanel'),
+        progressStatus: document.getElementById('progressStatus'),
+        progressPercent: document.getElementById('progressPercent'),
+        progressBar: document.getElementById('progressBar'),
+        progressDetail: document.getElementById('progressDetail'),
+        cancelOcrBtn: document.getElementById('cancelOcrBtn'),
+        previewCanvasWrap: document.getElementById('previewCanvasWrap'),
+        pagePreviewCanvas: document.getElementById('pagePreviewCanvas'),
+        exportReadyBadge: document.getElementById('exportReadyBadge'),
+        exportExcelBtn: document.getElementById('exportExcelBtn'),
+        exportPdfBtn: document.getElementById('exportPdfBtn'),
+        tabTableBtn: document.getElementById('tabTableBtn'),
+        tabRawBtn: document.getElementById('tabRawBtn'),
+        tableView: document.getElementById('tableView'),
+        rawView: document.getElementById('rawView'),
+        parseModeSelect: document.getElementById('parseModeSelect'),
+        addRowBtn: document.getElementById('addRowBtn'),
+        tableEmptyState: document.getElementById('tableEmptyState'),
+        tableContainer: document.getElementById('tableContainer'),
+        tableHead: document.getElementById('tableHead'),
+        tableBody: document.getElementById('tableBody'),
+        rawTextArea: document.getElementById('rawTextArea'),
+        syncTextBtn: document.getElementById('syncTextBtn'),
+        copyTextBtn: document.getElementById('copyTextBtn'),
+        statPages: document.getElementById('statPages'),
+        statRows: document.getElementById('statRows'),
+        statWords: document.getElementById('statWords'),
+        statMethod: document.getElementById('statMethod'),
+        openGuideBtn: document.getElementById('openGuideBtn'),
+        notepadModal: document.getElementById('notepadModal'),
+        closeGuideBtn: document.getElementById('closeGuideBtn'),
+        closeGuideFooterBtn: document.getElementById('closeGuideFooterBtn'),
+        toastContainer: document.getElementById('toastContainer')
+      };
+
+      // Toast Notification Helper
+      function showToast(message, type) {
+        const colors = {
+          success: 'bg-emerald-600 text-white',
+          error: 'bg-rose-600 text-white',
+          info: 'bg-slate-800 text-white'
+        };
+        const toast = document.createElement('div');
+        toast.className = 'toast-enter pointer-events-auto rounded-xl px-4 py-3 text-xs sm:text-sm font-medium shadow-lg flex items-center justify-between gap-3 ' + (colors[type] || colors.info);
+        const span = document.createElement('span');
+        span.textContent = message;
+        toast.appendChild(span);
+        els.toastContainer.appendChild(toast);
+        setTimeout(function () {
+          toast.style.opacity = '0';
+          toast.style.transition = 'opacity 0.25s ease';
+          setTimeout(function () {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+          }, 260);
+        }, 3500);
+      }
+
+      function formatBytes(bytes) {
+        if (!bytes) return '0 B';
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), sizes.length - 1);
+        return (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1) + ' ' + sizes[i];
+      }
+
+      function setProgress(percent, status, detail) {
+        const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+        els.progressBar.style.width = clamped + '%';
+        els.progressPercent.textContent = clamped + '%';
+        if (status) els.progressStatus.textContent = status;
+        if (detail) els.progressDetail.textContent = detail;
+      }
+
+      // Handle File Selection
+      function handleSelectedFile(file) {
+        if (!file) return;
+        const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+        const isImg = file.type.startsWith('image/');
+        if (!isPdf && !isImg) {
+          showToast('Please select a PDF or image file (PNG, JPG, WebP).', 'error');
+          return;
+        }
+        state.file = file;
+        state.sourceName = file.name.replace(/\.[^/.]+$/, '');
+        els.selectedFileName.textContent = file.name;
+        els.selectedFileSize.textContent = '(' + formatBytes(file.size) + ')';
+        els.selectedFileBadge.classList.remove('hidden');
+        els.extractBtn.disabled = false;
+        showToast('File ready: ' + file.name, 'info');
+      }
+
+      // Smart Table Parser
+      function parseTextToTable(rawText, mode) {
+        const lines = rawText
+          .split(/\r?\n/)
+          .map(function (l) { return l.trim(); })
+          .filter(function (l) { return l.length > 0 && !/^---\s*Page\s+\d+.*---$/i.test(l); });
+
+        if (lines.length === 0) {
+          return { headers: ['Page / Line', 'Extracted Data'], rows: [] };
+        }
+
+        if (mode === 'lines') {
+          return {
+            headers: ['Line #', 'Extracted Content'],
+            rows: lines.map(function (line, idx) { return [String(idx + 1), line]; })
+          };
+        }
+
+        if (mode === 'kv') {
+          const kvRows = lines.map(function (line) {
+            const match = line.match(/^([^:=|]{2,40})\s*[:=]\s*(.+)$/);
+            if (match) return [match[1].trim(), match[2].trim()];
+            return ['Note', line];
+          });
+          return { headers: ['Field / Key', 'Extracted Value'], rows: kvRows };
+        }
+
+        const tokenized = lines.map(function (line) {
+          if (line.indexOf('|') !== -1) {
+            return line.split('|').map(function (s) { return s.trim(); }).filter(Boolean);
+          }
+          if (line.indexOf('\t') !== -1) {
+            return line.split('\t').map(function (s) { return s.trim(); });
+          }
+          const multiSpace = line.split(/\s{2,}/).map(function (s) { return s.trim(); }).filter(Boolean);
+          if (multiSpace.length > 1) return multiSpace;
+          const kv = line.match(/^([^:]{2,35}):\s*(.+)$/);
+          if (kv) return [kv[1].trim(), kv[2].trim()];
+          return [line];
+        });
+
+        let maxCols = 1;
+        tokenized.forEach(function (r) {
+          if (r.length > maxCols) maxCols = r.length;
+        });
+        maxCols = Math.min(maxCols, 8);
+
+        if (maxCols === 1) {
+          return {
+            headers: ['Line #', 'Extracted Content'],
+            rows: lines.map(function (line, idx) { return [String(idx + 1), line]; })
+          };
+        }
+
+        const firstRow = tokenized[0];
+        const firstIsHeader = firstRow.length >= 2 && firstRow.every(function (cell) {
+          return isNaN(Number(cell.replace(/[$€£₹,]/g, '')));
+        });
+
+        let headers = [];
+        let dataRows = tokenized;
+
+        if (firstIsHeader && tokenized.length > 1) {
+          for (let c = 0; c < maxCols; c++) {
+            headers.push(firstRow[c] || ('Column ' + (c + 1)));
+          }
+          dataRows = tokenized.slice(1);
+        } else {
+          for (let c = 0; c < maxCols; c++) {
+            headers.push('Column ' + (c + 1));
+          }
+        }
+
+        const normalizedRows = dataRows.map(function (r) {
+          const out = [];
+          for (let c = 0; c < maxCols; c++) {
+            out.push(r[c] !== undefined ? r[c] : '');
+          }
+          return out;
+        });
+
+        return { headers: headers, rows: normalizedRows };
+      }
+
+      // Render UI from State
+      function renderAll() {
+        const hasData = state.rows.length > 0 || state.rawText.trim().length > 0;
+        els.exportExcelBtn.disabled = !hasData || state.isProcessing;
+        els.exportPdfBtn.disabled = !hasData || state.isProcessing;
+
+        if (hasData) {
+          els.exportReadyBadge.textContent = state.rows.length + ' rows ready to export';
+          els.exportReadyBadge.className = 'text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full';
+        } else {
+          els.exportReadyBadge.textContent = 'Upload a PDF or load sample data to export';
+          els.exportReadyBadge.className = 'text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full';
+        }
+
+        els.statPages.textContent = String(state.pages.length || (hasData ? 1 : 0));
+        els.statRows.textContent = String(state.rows.length);
+        const words = state.rawText.trim() ? state.rawText.trim().split(/\s+/).length : 0;
+        els.statWords.textContent = words.toLocaleString();
+
+        if (state.pages.length > 0) {
+          const methods = Array.from(new Set(state.pages.map(function (p) { return p.method; })));
+          els.statMethod.textContent = methods.join(' + ');
+        } else {
+          els.statMethod.textContent = '—';
+        }
+
+        if (els.rawTextArea.value !== state.rawText) {
+          els.rawTextArea.value = state.rawText;
+        }
+
+        if (state.rows.length === 0) {
+          els.tableEmptyState.classList.remove('hidden');
+          els.tableContainer.classList.add('hidden');
+          return;
+        }
+
+        els.tableEmptyState.classList.add('hidden');
+        els.tableContainer.classList.remove('hidden');
+
+        els.tableHead.innerHTML = '';
+        const trHead = document.createElement('tr');
+        const thIdx = document.createElement('th');
+        thIdx.className = 'px-3 py-2.5 w-10 text-center font-semibold';
+        thIdx.textContent = '#';
+        trHead.appendChild(thIdx);
+
+        state.headers.forEach(function (h, colIdx) {
+          const th = document.createElement('th');
+          th.className = 'px-3 py-2.5 font-semibold min-w-[130px]';
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.value = h;
+          input.setAttribute('aria-label', 'Column header ' + (colIdx + 1));
+          input.className = 'w-full bg-transparent font-semibold uppercase tracking-wider text-xs text-slate-700 focus:outline-none focus:bg-white focus:px-1.5 rounded';
+          input.addEventListener('input', function (e) {
+            state.headers[colIdx] = e.target.value;
+          });
+          th.appendChild(input);
+          trHead.appendChild(th);
+        });
+
+        const thAct = document.createElement('th');
+        thAct.className = 'px-3 py-2.5 w-12 text-center font-semibold';
+        thAct.textContent = '';
+        trHead.appendChild(thAct);
+        els.tableHead.appendChild(trHead);
+
+        els.tableBody.innerHTML = '';
+        state.rows.forEach(function (row, rowIdx) {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50/80 transition';
+
+          const tdIdx = document.createElement('td');
+          tdIdx.className = 'px-3 py-2 text-center text-xs text-slate-400 font-medium';
+          tdIdx.textContent = String(rowIdx + 1);
+          tr.appendChild(tdIdx);
+
+          state.headers.forEach(function (_h, colIdx) {
+            const td = document.createElement('td');
+            td.className = 'p-0';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = row[colIdx] !== undefined ? row[colIdx] : '';
+            input.setAttribute('aria-label', 'Row ' + (rowIdx + 1) + ' Column ' + (colIdx + 1));
+            input.className = 'cell-input w-full px-3 py-2 text-xs sm:text-sm text-slate-800 bg-transparent border-0';
+            input.addEventListener('input', function (e) {
+              state.rows[rowIdx][colIdx] = e.target.value;
+            });
+            td.appendChild(input);
+            tr.appendChild(td);
+          });
+
+          const tdDel = document.createElement('td');
+          tdDel.className = 'px-2 py-1.5 text-center';
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.title = 'Delete row';
+          delBtn.className = 'p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition';
+          delBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>';
+          delBtn.addEventListener('click', function () {
+            state.rows.splice(rowIdx, 1);
+            renderAll();
+          });
+          tdDel.appendChild(delBtn);
+          tr.appendChild(tdDel);
+
+          els.tableBody.appendChild(tr);
+        });
+      }
+
+      // Extract native text lines from PDF.js page preserving row alignment
+      function extractStructuredPdfText(textContent) {
+        const items = textContent.items || [];
+        if (items.length === 0) return '';
+        const linesMap = [];
+        items.forEach(function (item) {
+          const str = (item.str || '').trim();
+          if (!str) return;
+          const y = Math.round(item.transform[5] / 4) * 4;
+          const x = item.transform[4];
+          let lineObj = linesMap.find(function (l) { return Math.abs(l.y - y) <= 4; });
+          if (!lineObj) {
+            lineObj = { y: y, parts: [] };
+            linesMap.push(lineObj);
+          }
+          lineObj.parts.push({ x: x, str: str });
+        });
+
+        linesMap.sort(function (a, b) { return b.y - a.y; });
+        return linesMap.map(function (line) {
+          line.parts.sort(function (a, b) { return a.x - b.x; });
+          let out = '';
+          for (let i = 0; i < line.parts.length; i++) {
+            if (i > 0) {
+              const gap = line.parts[i].x - line.parts[i - 1].x;
+              out += gap > 45 ? '   ' : ' ';
+            }
+            out += line.parts[i].str;
+          }
+          return out.trim();
+        }).filter(Boolean).join('\n');
+      }
+
+      // Main Extraction Pipeline (PDF + OCR)
+      async function runExtraction() {
+        if (!state.file || state.isProcessing) return;
+
+        const isPdf = state.file.type === 'application/pdf' || state.file.name.toLowerCase().endsWith('.pdf');
+        if (isPdf && !window.pdfjsLib) {
+          showToast('PDF.js failed to load. Please check your internet connection.', 'error');
+          return;
+        }
+        if (!window.Tesseract) {
+          showToast('Tesseract.js OCR engine failed to load. Please check your internet connection.', 'error');
+          return;
+        }
+
+        state.isProcessing = true;
+        state.cancelRequested = false;
+        state.pages = [];
+        els.extractBtn.disabled = true;
+        els.exportExcelBtn.disabled = true;
+        els.exportPdfBtn.disabled = true;
+        els.progressPanel.classList.remove('hidden');
+        setProgress(5, 'Reading uploaded file...', 'Preparing document...');
+
+        let worker = null;
+        const mode = els.ocrModeSelect.value;
+        const lang = els.ocrLangSelect.value;
+
+        try {
+          if (!isPdf) {
+            const imgUrl = URL.createObjectURL(state.file);
+            setProgress(15, 'Loading Tesseract OCR (' + lang + ')...', 'Initializing language model...');
+            worker = await window.Tesseract.createWorker(lang, 1, {
+              logger: function (m) {
+                if (m.status === 'recognizing text' && typeof m.progress === 'number') {
+                  setProgress(20 + m.progress * 75, 'Running OCR on image...', 'Recognizing text: ' + Math.round(m.progress * 100) + '%');
+                }
+              }
+            });
+            const result = await worker.recognize(imgUrl);
+            URL.revokeObjectURL(imgUrl);
+            state.pages.push({
+              pageNum: 1,
+              text: (result.data.text || '').trim(),
+              method: 'OCR',
+              confidence: Math.round(result.data.confidence || 0)
+            });
+          } else {
+            const arrayBuffer = await state.file.arrayBuffer();
+            let pdfDoc;
+            try {
+              pdfDoc = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            } catch (_workerErr) {
+              pdfDoc = await window.pdfjsLib.getDocument({ data: arrayBuffer, disableWorker: true }).promise;
+            }
+
+            const totalPages = pdfDoc.numPages;
+            els.previewCanvasWrap.classList.remove('hidden');
+
+            for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+              if (state.cancelRequested) break;
+
+              const basePct = ((pageNum - 1) / totalPages) * 100;
+              setProgress(basePct + 2, 'Processing Page ' + pageNum + ' of ' + totalPages, 'Inspecting page content...');
+
+              const page = await pdfDoc.getPage(pageNum);
+              let pageText = '';
+              let usedMethod = 'Native Text';
+              let confidence = 100;
+
+              if (mode === 'hybrid') {
+                const textContent = await page.getTextContent();
+                pageText = extractStructuredPdfText(textContent);
+              }
+
+              const viewport = page.getViewport({ scale: 2.0 });
+              const canvas = els.pagePreviewCanvas;
+              const ctx = canvas.getContext('2d');
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
+              await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+              const needsOcr = mode === 'force_ocr' || pageText.replace(/\s+/g, '').length < 25;
+              if (needsOcr) {
+                usedMethod = 'OCR';
+                if (!worker) {
+                  setProgress(basePct + 5, 'Loading Tesseract OCR (' + lang + ')...', 'Downloading language model (cached after first use)...');
+                  worker = await window.Tesseract.createWorker(lang, 1, {
+                    logger: function (m) {
+                      if (m.status === 'recognizing text' && typeof m.progress === 'number') {
+                        const pageSlice = 100 / totalPages;
+                        setProgress(
+                          basePct + m.progress * pageSlice,
+                          'Running OCR on Page ' + pageNum + ' of ' + totalPages,
+                          'Recognizing text: ' + Math.round(m.progress * 100) + '%'
+                        );
+                      }
+                    }
+                  });
+                }
+                const ocrRes = await worker.recognize(canvas);
+                pageText = (ocrRes.data.text || '').trim();
+                confidence = Math.round(ocrRes.data.confidence || 0);
+              }
+
+              state.pages.push({
+                pageNum: pageNum,
+                text: pageText,
+                method: usedMethod,
+                confidence: confidence
+              });
+            }
+          }
+
+          if (worker) {
+            await worker.terminate();
+            worker = null;
+          }
+
+          if (state.cancelRequested) {
+            showToast('Extraction cancelled.', 'info');
+          } else {
+            state.rawText = state.pages.map(function (p) {
+              return '--- Page ' + p.pageNum + ' (' + p.method + ') ---\n' + (p.text || '(No text detected)');
+            }).join('\n\n');
+
+            const parsed = parseTextToTable(state.rawText, els.parseModeSelect.value);
+            state.headers = parsed.headers;
+            state.rows = parsed.rows;
+            setProgress(100, 'Extraction complete!', 'Processed ' + state.pages.length + ' page(s). Ready to export.');
+            showToast('Extracted ' + state.rows.length + ' rows from ' + state.pages.length + ' page(s).', 'success');
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('Extraction failed: ' + (err && err.message ? err.message : 'Unknown error'), 'error');
+        } finally {
+          if (worker) {
+            try { await worker.terminate(); } catch (_e) {}
+          }
+          state.isProcessing = false;
+          els.extractBtn.disabled = !state.file;
+          setTimeout(function () {
+            if (!state.isProcessing) {
+              els.progressPanel.classList.add('hidden');
+            }
+          }, 1200);
+          renderAll();
+        }
+      }
+
+      // Option 1: Export to Excel (.xlsx)
+      function exportToExcel() {
+        if (!window.XLSX) {
+          showToast('SheetJS library not loaded. Check your internet connection.', 'error');
+          return;
+        }
+        if (state.rows.length === 0 && !state.rawText.trim()) {
+          showToast('No extracted data to export.', 'error');
+          return;
+        }
+
+        try {
+          const wb = window.XLSX.utils.book_new();
+
+          const tableData = [state.headers].concat(state.rows);
+          const wsTable = window.XLSX.utils.aoa_to_sheet(tableData);
+          const colWidths = state.headers.map(function (h, idx) {
+            let maxLen = String(h || '').length;
+            state.rows.forEach(function (r) {
+              const len = String(r[idx] || '').length;
+              if (len > maxLen) maxLen = len;
+            });
+            return { wch: Math.min(Math.max(maxLen + 4, 14), 50) };
+          });
+          wsTable['!cols'] = colWidths;
+          window.XLSX.utils.book_append_sheet(wb, wsTable, 'Extracted Data');
+
+          const rawRows = [['Page', 'Method', 'Extracted Text']];
+          if (state.pages.length > 0) {
+            state.pages.forEach(function (p) {
+              rawRows.push([p.pageNum, p.method, p.text]);
+            });
+          } else {
+            rawRows.push([1, 'Edited Text', state.rawText]);
+          }
+          const wsRaw = window.XLSX.utils.aoa_to_sheet(rawRows);
+          wsRaw['!cols'] = [{ wch: 8 }, { wch: 15 }, { wch: 90 }];
+          window.XLSX.utils.book_append_sheet(wb, wsRaw, 'Raw OCR Text');
+
+          const filename = (state.sourceName || 'ocr_extracted_data') + '_extracted.xlsx';
+          window.XLSX.writeFile(wb, filename);
+          showToast('Excel file downloaded: ' + filename, 'success');
+        } catch (err) {
+          console.error(err);
+          showToast('Excel export failed: ' + err.message, 'error');
+        }
+      }
+
+      // Option 2: Export to PDF (.pdf)
+      function exportToPdf() {
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+          showToast('jsPDF library not loaded. Check your internet connection.', 'error');
+          return;
+        }
+        if (state.rows.length === 0 && !state.rawText.trim()) {
+          showToast('No extracted data to export.', 'error');
+          return;
+        }
+
+        try {
+          const jsPDF = window.jspdf.jsPDF;
+          const doc = new jsPDF({ orientation: state.headers.length > 5 ? 'landscape' : 'portrait', unit: 'pt', format: 'a4' });
+          const margin = 40;
+
+          doc.setFillColor(79, 70, 229);
+          doc.rect(0, 0, doc.internal.pageSize.getWidth(), 64, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(16);
+          doc.text('OCR Extracted Data Report', margin, 32);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9.5);
+          const metaLine = 'Source: ' + (state.sourceName || 'Uploaded Document') + '   |   Generated: ' + new Date().toLocaleString();
+          doc.text(metaLine, margin, 49);
+
+          let cursorY = 86;
+
+          if (state.rows.length > 0 && typeof doc.autoTable === 'function') {
+            doc.setTextColor(15, 23, 42);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.text('Structured Data (' + state.rows.length + ' rows)', margin, cursorY);
+
+            doc.autoTable({
+              startY: cursorY + 10,
+              head: [state.headers],
+              body: state.rows,
+              margin: { left: margin, right: margin },
+              styles: { fontSize: 8.5, cellPadding: 5, textColor: [30, 41, 59] },
+              headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontStyle: 'bold' },
+              alternateRowStyles: { fillColor: [248, 250, 252] }
+            });
+            cursorY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : cursorY) + 28;
+          }
+
+          if (state.rawText.trim()) {
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            if (cursorY > pageHeight - 100) {
+              doc.addPage();
+              cursorY = 48;
+            }
+            doc.setTextColor(15, 23, 42);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.text('Raw Extracted Text', margin, cursorY);
+            cursorY += 16;
+
+            doc.setFont('courier', 'normal');
+            doc.setFontSize(8.5);
+            doc.setTextColor(51, 65, 85);
+            const wrapped = doc.splitTextToSize(state.rawText.trim(), pageWidth - margin * 2);
+            wrapped.forEach(function (line) {
+              if (cursorY > pageHeight - 40) {
+                doc.addPage();
+                cursorY = 44;
+              }
+              doc.text(line, margin, cursorY);
+              cursorY += 12;
+            });
+          }
+
+          const filename = (state.sourceName || 'ocr_extracted_data') + '_report.pdf';
+          doc.save(filename);
+          showToast('PDF report downloaded: ' + filename, 'success');
+        } catch (err) {
+          console.error(err);
+          showToast('PDF export failed: ' + err.message, 'error');
+        }
+      }
+
+      // Load Sample Data for Instant Testing
+      function loadSampleData() {
+        state.file = null;
+        state.sourceName = 'Sample_Invoice_2026';
+        state.pages = [{ pageNum: 1, text: '', method: 'Sample OCR', confidence: 98 }];
+        state.rawText = [
+          '--- Page 1 (Sample OCR) ---',
+          'Item Code   Description   Quantity   Unit Price   Total',
+          'INV-101   Cloud Server Hosting (Annual)   2   $450.00   $900.00',
+          'INV-102   SSL Wildcard Certificate   1   $120.00   $120.00',
+          'INV-103   Automated Daily Backups   2   $85.00   $170.00',
+          'INV-104   Priority Support Plan   1   $250.00   $250.00',
+          'TOTAL   Invoice Grand Total   6   -   $1,440.00'
+        ].join('\n');
+        state.pages[0].text = state.rawText;
+
+        els.selectedFileBadge.classList.add('hidden');
+        els.extractBtn.disabled = true;
+
+        const parsed = parseTextToTable(state.rawText, els.parseModeSelect.value);
+        state.headers = parsed.headers;
+        state.rows = parsed.rows;
+        renderAll();
+        showToast('Sample invoice data loaded! Try editing cells or exporting to Excel/PDF.', 'success');
+      }
+
+      // Reset Everything
+      function resetAll() {
+        if (state.isProcessing) {
+          state.cancelRequested = true;
+        }
+        state.file = null;
+        state.sourceName = '';
+        state.pages = [];
+        state.rawText = '';
+        state.headers = [];
+        state.rows = [];
+        els.fileInput.value = '';
+        els.selectedFileBadge.classList.add('hidden');
+        els.extractBtn.disabled = true;
+        els.progressPanel.classList.add('hidden');
+        els.previewCanvasWrap.classList.add('hidden');
+        els.rawTextArea.value = '';
+        renderAll();
+        showToast('Workspace cleared.', 'info');
+      }
+
+      // Switch View Tabs
+      function switchTab(tab) {
+        state.activeTab = tab;
+        if (tab === 'table') {
+          els.tableView.classList.remove('hidden');
+          els.rawView.classList.add('hidden');
+          els.tabTableBtn.className = 'px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-md bg-white text-indigo-700 shadow-sm transition';
+          els.tabRawBtn.className = 'px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md text-slate-600 hover:text-slate-900 transition';
+        } else {
+          els.tableView.classList.add('hidden');
+          els.rawView.classList.remove('hidden');
+          els.tabRawBtn.className = 'px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-md bg-white text-indigo-700 shadow-sm transition';
+          els.tabTableBtn.className = 'px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md text-slate-600 hover:text-slate-900 transition';
+        }
+      }
+
+      // Event Listeners
+      els.dropZone.addEventListener('click', function () {
+        els.fileInput.click();
+      });
+      els.dropZone.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          els.fileInput.click();
+        }
+      });
+      els.fileInput.addEventListener('change', function (e) {
+        if (e.target.files && e.target.files[0]) {
+          handleSelectedFile(e.target.files[0]);
+        }
+      });
+
+      ['dragenter', 'dragover'].forEach(function (evt) {
+        els.dropZone.addEventListener(evt, function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          els.dropZone.classList.add('drop-zone-active');
+        });
+      });
+      ['dragleave', 'drop'].forEach(function (evt) {
+        els.dropZone.addEventListener(evt, function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          els.dropZone.classList.remove('drop-zone-active');
+        });
+      });
+      els.dropZone.addEventListener('drop', function (e) {
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+          handleSelectedFile(e.dataTransfer.files[0]);
+        }
+      });
+
+      els.extractBtn.addEventListener('click', runExtraction);
+      els.clearBtn.addEventListener('click', resetAll);
+      els.loadSampleBtn.addEventListener('click', loadSampleData);
+      els.cancelOcrBtn.addEventListener('click', function () {
+        state.cancelRequested = true;
+        els.progressStatus.textContent = 'Cancelling...';
+      });
+
+      els.exportExcelBtn.addEventListener('click', exportToExcel);
+      els.exportPdfBtn.addEventListener('click', exportToPdf);
+
+      els.tabTableBtn.addEventListener('click', function () { switchTab('table'); });
+      els.tabRawBtn.addEventListener('click', function () { switchTab('raw'); });
+
+      els.parseModeSelect.addEventListener('change', function () {
+        if (!state.rawText.trim()) return;
+        const parsed = parseTextToTable(state.rawText, els.parseModeSelect.value);
+        state.headers = parsed.headers;
+        state.rows = parsed.rows;
+        renderAll();
+      });
+
+      els.addRowBtn.addEventListener('click', function () {
+        if (state.headers.length === 0) {
+          state.headers = ['Field', 'Value'];
+        }
+        state.rows.push(state.headers.map(function () { return ''; }));
+        renderAll();
+      });
+
+      els.syncTextBtn.addEventListener('click', function () {
+        state.rawText = els.rawTextArea.value;
+        const parsed = parseTextToTable(state.rawText, els.parseModeSelect.value);
+        state.headers = parsed.headers;
+        state.rows = parsed.rows;
+        renderAll();
+        switchTab('table');
+        showToast('Table updated from raw text.', 'success');
+      });
+
+      els.copyTextBtn.addEventListener('click', function () {
+        const text = els.rawTextArea.value;
+        if (!text.trim()) {
+          showToast('Nothing to copy yet.', 'info');
+          return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            showToast('Extracted text copied to clipboard.', 'success');
+          }).catch(function () {
+            els.rawTextArea.select();
+            document.execCommand('copy');
+            showToast('Extracted text copied to clipboard.', 'success');
+          });
+        } else {
+          els.rawTextArea.select();
+          document.execCommand('copy');
+          showToast('Extracted text copied to clipboard.', 'success');
+        }
+      });
+
+      function toggleModal(show) {
+        if (show) {
+          els.notepadModal.classList.remove('hidden');
+        } else {
+          els.notepadModal.classList.add('hidden');
+        }
+      }
+      els.openGuideBtn.addEventListener('click', function () { toggleModal(true); });
+      els.closeGuideBtn.addEventListener('click', function () { toggleModal(false); });
+      els.closeGuideFooterBtn.addEventListener('click', function () { toggleModal(false); });
+      els.notepadModal.addEventListener('click', function (e) {
+        if (e.target === els.notepadModal) toggleModal(false);
+      });
+
+      if (window.lucide) {
+        window.lucide.createIcons();
+      }
+      renderAll();
+    })();
+  </script>
+</body>
+</html>
